@@ -77,7 +77,7 @@ function SkeletonGrid() {
   return (
     <div className="grid grid-cols-1 gap-3.5 sm:grid-cols-2 lg:grid-cols-3">
       {Array.from({ length: 6 }).map((_, i) => (
-        <div key={i} className="skeleton h-[260px] rounded-2xl border border-line-soft" />
+        <div key={i} className="skeleton h-[260px] rounded-3xl" />
       ))}
     </div>
   )
@@ -100,15 +100,15 @@ export default function App() {
 
   return (
     <div className="relative min-h-screen">
-      {/* 인터랙티브 도트 그리드 배경 (React Bits) */}
-      <div className="pointer-events-none fixed inset-0 z-0 opacity-70">
+      {/* 인터랙티브 도트 그리드 배경 (React Bits) — 라이트 톤 */}
+      <div className="pointer-events-none fixed inset-0 z-0 opacity-90">
         <DotGrid
           dotSize={3}
-          gap={26}
-          baseColor="#1b2330"
-          activeColor="#2fd6a6"
-          proximity={110}
-          shockRadius={220}
+          gap={28}
+          baseColor="#dbe2ea"
+          activeColor="#3182f6"
+          proximity={120}
+          shockRadius={230}
           shockStrength={4}
           returnDuration={1.4}
         />
@@ -116,24 +116,24 @@ export default function App() {
 
       <div className="relative z-10 mx-auto max-w-6xl px-4 md:px-6">
         {/* 헤더 */}
-        <header className="flex flex-wrap items-center gap-x-4 gap-y-2 pt-8 pb-6">
+        <header className="flex flex-wrap items-center gap-x-4 gap-y-3 pt-8 pb-6">
           <div>
             <div className="flex items-center gap-2.5">
-              <span className="grid h-9 w-9 place-items-center rounded-xl border border-mint/30 bg-mint/10 text-[17px]">
+              <span className="grid h-10 w-10 place-items-center rounded-2xl bg-blue text-[18px] shadow-toss">
                 📷
               </span>
-              <h1 className="text-[22px] font-extrabold tracking-tight">
-                MIARE <span className="font-semibold text-mint">매물 레이더</span>
+              <h1 className="text-[23px] font-bold tracking-tight text-ink">
+                MIARE <span className="text-blue">매물 레이더</span>
               </h1>
             </div>
-            <p className="mt-1.5 text-[13.5px] text-dim">
+            <p className="mt-2 text-[14px] font-medium text-dim">
               광주 광산구 · 증명사진관 자리 찾기 · 상가 월세
             </p>
           </div>
           {data && (
             <div className="ml-auto text-right">
-              <div className="font-mono text-[12.5px] text-faint">{fmtUpdated(data.updatedAt)}</div>
-              <div className="mt-1 flex flex-wrap justify-end gap-1.5">
+              <div className="tnum text-[12.5px] font-medium text-faint">{fmtUpdated(data.updatedAt)}</div>
+              <div className="mt-1.5 flex flex-wrap justify-end gap-1.5">
                 {[
                   `보증금 ≤ ${data.criteria.depositMax}만`,
                   `월세 ≤ ${data.criteria.rentMax}만`,
@@ -142,7 +142,7 @@ export default function App() {
                 ].map((c) => (
                   <span
                     key={c}
-                    className="rounded-md border border-line bg-surface px-2 py-0.5 text-[11.5px] font-medium text-dim"
+                    className="rounded-lg bg-blue-bg px-2.5 py-1 text-[11.5px] font-semibold text-blue"
                   >
                     {c}
                   </span>
@@ -172,27 +172,27 @@ export default function App() {
         {loading && <SkeletonGrid />}
 
         {error && (
-          <div className="rounded-2xl border border-rose/30 bg-rose/5 p-6 text-center">
-            <p className="font-semibold text-rose">데이터를 불러오지 못했어요</p>
+          <div className="rounded-3xl bg-rose-bg p-6 text-center shadow-toss">
+            <p className="font-bold text-rose">데이터를 불러오지 못했어요</p>
             <p className="mt-1 text-[13px] text-dim">{error}</p>
           </div>
         )}
 
         {data && (
           <>
-            <div className="mb-3 text-[13px] text-faint">
-              {filtered.length.toLocaleString()}건 표시 중
+            <div className="mb-3.5 text-[13px] font-medium text-faint">
+              <span className="tnum font-bold text-dim">{filtered.length.toLocaleString()}</span>건 표시 중
             </div>
 
             {filtered.length === 0 ? (
-              <div className="rounded-2xl border border-line bg-surface p-10 text-center">
-                <p className="text-[15px] font-semibold text-ink">조건에 맞는 매물이 없어요</p>
-                <p className="mt-1.5 text-[13px] text-dim">
+              <div className="rounded-3xl bg-surface p-10 text-center shadow-toss">
+                <p className="text-[16px] font-bold text-ink">조건에 맞는 매물이 없어요</p>
+                <p className="mt-2 text-[13.5px] text-dim">
                   필터를 넓혀보세요 — 매물은 주기적으로 자동 수집돼요.
                 </p>
                 <button
                   onClick={() => setFiltersReset(DEFAULT_FILTERS)}
-                  className="mt-4 h-9 rounded-full border border-mint/40 bg-mint/10 px-4 text-[13px] font-semibold text-mint transition-colors hover:bg-mint/20"
+                  className="mt-4 h-10 rounded-xl bg-blue px-4 text-[13.5px] font-bold text-white transition-colors hover:bg-blue-deep"
                 >
                   필터 초기화
                 </button>
@@ -209,7 +209,7 @@ export default function App() {
               <div className="mt-6 text-center">
                 <button
                   onClick={() => setVisible((v) => v + PAGE_SIZE)}
-                  className="h-10 rounded-full border border-line bg-surface px-5 text-[13.5px] font-semibold text-dim transition-colors hover:border-mint/40 hover:text-mint"
+                  className="h-11 rounded-xl bg-surface px-5 text-[13.5px] font-bold text-dim shadow-toss transition-all hover:text-blue hover:shadow-toss-hover"
                 >
                   더 보기 ({(filtered.length - visible).toLocaleString()}건 남음)
                 </button>

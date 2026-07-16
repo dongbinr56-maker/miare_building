@@ -1,26 +1,38 @@
 @import "tailwindcss";
 
+/* ─── 토스 스타일 라이트 테마 ─── */
 @theme {
-  --color-canvas: #0a0d13;
-  --color-surface: #10141d;
-  --color-surface-2: #151b26;
-  --color-line: #1d2430;
-  --color-line-soft: #171d28;
-  --color-ink: #e9edf4;
-  --color-dim: #8b96ab;
-  --color-faint: #5b6577;
-  --color-mint: #2fd6a6;
-  --color-mint-deep: #14b98b;
-  --color-amber: #f2b64c;
-  --color-rose: #f2647c;
+  --color-canvas: #f2f4f6;      /* 페이지 배경 (토스 라이트 그레이) */
+  --color-surface: #ffffff;     /* 카드 */
+  --color-surface-2: #f2f4f6;   /* 칩·내부 서피스 */
+  --color-surface-3: #f9fafb;   /* 아주 옅은 서피스 */
+  --color-line: #e5e8eb;        /* 테두리 */
+  --color-line-soft: #eef1f4;   /* 옅은 구분선 */
+
+  --color-ink: #191f28;         /* 제목/진한 텍스트 */
+  --color-dim: #4e5968;         /* 본문 */
+  --color-faint: #8b95a1;       /* 캡션 */
+
+  --color-blue: #3182f6;        /* 토스 블루 (프라이머리) */
+  --color-blue-deep: #1b64da;
+  --color-blue-bg: #e8f3ff;     /* 옅은 블루 틴트 */
+
+  --color-green: #12b886;       /* 긍정/충족 보조 */
+  --color-green-bg: #e6f9f2;
+  --color-amber: #f59f00;       /* 근접 */
+  --color-amber-bg: #fff4e0;
+  --color-rose: #f04452;        /* 경고 */
+  --color-rose-bg: #ffeced;
+
+  --color-naver: #03c75a;       /* 네이버 브랜드 */
+  --color-daangn: #ff7e36;      /* 당근 브랜드 */
 
   --font-sans: "Pretendard Variable", Pretendard, -apple-system, "Segoe UI", "Malgun Gothic", sans-serif;
-  --font-mono: "JetBrains Mono", ui-monospace, Consolas, monospace;
 }
 
 html {
   background: var(--color-canvas);
-  color-scheme: dark;
+  color-scheme: light;
 }
 
 body {
@@ -28,55 +40,68 @@ body {
   font-family: var(--font-sans);
   color: var(--color-ink);
   -webkit-font-smoothing: antialiased;
-  /* 상단 민트/블루 광원 (도트 그리드는 DotGrid 캔버스가 담당) */
+  text-rendering: optimizeLegibility;
+  /* 상단 옅은 블루 광원 (도트는 DotGrid 캔버스가 담당) */
   background:
-    radial-gradient(1100px 500px at 18% -10%, rgba(47, 214, 166, 0.07), transparent 60%),
-    radial-gradient(900px 420px at 85% -14%, rgba(76, 132, 255, 0.055), transparent 60%),
+    radial-gradient(1200px 520px at 15% -12%, rgba(49, 130, 246, 0.10), transparent 62%),
+    radial-gradient(900px 440px at 88% -14%, rgba(49, 130, 246, 0.06), transparent 60%),
     var(--color-canvas);
   background-attachment: fixed;
 }
 
-::selection {
-  background: rgba(47, 214, 166, 0.3);
+/* 숫자는 탭수치 정렬 */
+.tnum {
+  font-variant-numeric: tabular-nums;
+  font-feature-settings: "tnum" 1;
+  letter-spacing: -0.02em;
 }
 
-/* ---------- 진입 애니메이션 ---------- */
+::selection {
+  background: rgba(49, 130, 246, 0.18);
+}
+
+/* ─── 진입 애니메이션 ─── */
 @keyframes rise {
-  from { opacity: 0; transform: translateY(14px); }
+  from { opacity: 0; transform: translateY(12px); }
   to { opacity: 1; transform: translateY(0); }
 }
 
 .rise {
   opacity: 0;
-  animation: rise 0.55s cubic-bezier(0.2, 0.7, 0.2, 1) forwards;
-  animation-delay: calc(min(var(--i, 0), 14) * 42ms);
+  animation: rise 0.5s cubic-bezier(0.22, 0.7, 0.24, 1) forwards;
+  animation-delay: calc(min(var(--i, 0), 14) * 40ms);
 }
 
 @keyframes pulse-dot {
-  0%, 100% { box-shadow: 0 0 0 0 rgba(47, 214, 166, 0.45); }
-  60% { box-shadow: 0 0 0 7px rgba(47, 214, 166, 0); }
+  0%, 100% { box-shadow: 0 0 0 0 rgba(49, 130, 246, 0.4); }
+  60% { box-shadow: 0 0 0 6px rgba(49, 130, 246, 0); }
 }
-
 .pulse-dot { animation: pulse-dot 2.2s ease-out infinite; }
 
 @keyframes shimmer {
   0% { background-position: -400px 0; }
   100% { background-position: 400px 0; }
 }
-
 .skeleton {
-  background: linear-gradient(90deg, #10141d 0%, #161c28 45%, #10141d 90%) 0 0 / 800px 100%;
+  background: linear-gradient(90deg, #eef1f4 0%, #f6f8fa 45%, #eef1f4 90%) 0 0 / 800px 100%;
   animation: shimmer 1.4s linear infinite;
 }
 
-/* 매치 상태별 카드 테두리 글로우 */
-.card-full {
-  border-color: rgba(47, 214, 166, 0.38);
-  box-shadow: 0 0 0 1px rgba(47, 214, 166, 0.12), 0 10px 34px -16px rgba(47, 214, 166, 0.22);
+/* ─── 토스풍 소프트 섀도 ─── */
+.shadow-toss {
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04), 0 6px 20px -8px rgba(0, 0, 0, 0.08);
 }
+.shadow-toss-hover {
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.05), 0 14px 32px -12px rgba(0, 0, 0, 0.14);
+}
+
+/* 조건 충족 카드: 블루 링 + 블루 섀도 */
+.card-full {
+  box-shadow: 0 0 0 1.5px rgba(49, 130, 246, 0.5), 0 8px 26px -12px rgba(49, 130, 246, 0.32);
+}
+/* 근접 카드: 옅은 앰버 링 */
 .card-near {
-  border-color: rgba(242, 182, 76, 0.28);
-  box-shadow: 0 0 0 1px rgba(242, 182, 76, 0.07);
+  box-shadow: 0 0 0 1px rgba(245, 159, 0, 0.35), 0 1px 2px rgba(0, 0, 0, 0.04);
 }
 
 .clamp-2 {
@@ -86,9 +111,9 @@ body {
   overflow: hidden;
 }
 
-/* 필터바 글래스 */
+/* 필터바 유리 효과 (라이트) */
 .glass {
-  background: rgba(13, 17, 24, 0.82);
-  backdrop-filter: blur(14px);
-  -webkit-backdrop-filter: blur(14px);
+  background: rgba(242, 244, 246, 0.82);
+  backdrop-filter: blur(14px) saturate(1.4);
+  -webkit-backdrop-filter: blur(14px) saturate(1.4);
 }

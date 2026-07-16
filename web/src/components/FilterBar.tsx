@@ -45,10 +45,10 @@ function Chip({
   return (
     <button
       onClick={onClick}
-      className={`h-8 shrink-0 rounded-full border px-3.5 text-[13px] font-medium transition-all duration-150 ${
+      className={`h-9 shrink-0 rounded-full px-3.5 text-[13px] font-semibold transition-all duration-150 ${
         active
-          ? 'border-mint/50 bg-mint/12 text-mint'
-          : 'border-line bg-surface text-dim hover:border-line hover:text-ink'
+          ? 'bg-blue text-white shadow-toss'
+          : 'bg-surface text-dim shadow-toss hover:text-ink'
       }`}
     >
       {children}
@@ -73,7 +73,7 @@ export function FilterBar({
   }
 
   return (
-    <div className="glass sticky top-0 z-20 -mx-4 border-b border-line-soft px-4 py-3 md:-mx-6 md:px-6">
+    <div className="glass sticky top-0 z-20 -mx-4 border-b border-line-soft px-4 py-3.5 md:-mx-6 md:px-6">
       <div className="mx-auto flex max-w-6xl flex-col gap-2.5">
         {/* 1행: 동 선택 + 검색 */}
         <div className="flex flex-wrap items-center gap-2">
@@ -83,7 +83,7 @@ export function FilterBar({
           {regions.map((r) => (
             <Chip key={r.name} active={filters.dongs.includes(r.name)} onClick={() => toggleDong(r.name)}>
               {r.name}
-              <span className="ml-1 font-mono text-[11px] opacity-60">{r.count}</span>
+              <span className="tnum ml-1 text-[11px] opacity-60">{r.count}</span>
             </Chip>
           ))}
           <div className="ml-auto min-w-[140px] flex-1 md:max-w-[240px]">
@@ -91,20 +91,22 @@ export function FilterBar({
               value={filters.query}
               onChange={(e) => set({ query: e.target.value })}
               placeholder="설명·건물명 검색"
-              className="h-8 w-full rounded-full border border-line bg-surface px-3.5 text-[13px] text-ink placeholder-faint outline-none transition-colors focus:border-mint/40"
+              className="h-9 w-full rounded-full bg-surface px-4 text-[13px] font-medium text-ink placeholder-faint shadow-toss outline-none transition-all focus:ring-2 focus:ring-blue/40"
             />
           </div>
         </div>
 
         {/* 2행: 매치 레벨 + 토글 + 정렬 */}
         <div className="flex flex-wrap items-center gap-2">
-          <div className="flex overflow-hidden rounded-full border border-line">
+          <div className="flex gap-1 rounded-full bg-surface-2 p-1">
             {LEVELS.map((l) => (
               <button
                 key={l.key}
                 onClick={() => set({ level: l.key })}
-                className={`h-8 px-3.5 text-[13px] font-medium transition-colors ${
-                  filters.level === l.key ? 'bg-mint/15 text-mint' : 'bg-surface text-dim hover:text-ink'
+                className={`h-7 rounded-full px-3 text-[13px] font-semibold transition-all ${
+                  filters.level === l.key
+                    ? 'bg-surface text-blue shadow-toss'
+                    : 'text-faint hover:text-dim'
                 }`}
               >
                 {l.label}
@@ -138,7 +140,7 @@ export function FilterBar({
           <select
             value={filters.sort}
             onChange={(e) => set({ sort: e.target.value as SortKey })}
-            className="ml-auto h-8 rounded-full border border-line bg-surface px-3 text-[13px] font-medium text-dim outline-none transition-colors hover:text-ink focus:border-mint/40"
+            className="ml-auto h-9 rounded-full bg-surface px-3.5 text-[13px] font-semibold text-dim shadow-toss outline-none transition-all hover:text-ink focus:ring-2 focus:ring-blue/40"
           >
             {SORTS.map((s) => (
               <option key={s.key} value={s.key}>
