@@ -1,4 +1,4 @@
-import { useCountUp } from '../useCountUp'
+import CountUp from './reactbits/CountUp'
 import type { ListingData } from '../types'
 
 function StatTile({
@@ -14,7 +14,6 @@ function StatTile({
   hint?: string
   i: number
 }) {
-  const n = useCountUp(value)
   const toneCls =
     tone === 'blue'
       ? 'text-blue'
@@ -33,7 +32,7 @@ function StatTile({
         {label}
       </div>
       <div className={`tnum mt-1.5 text-[34px] leading-none font-bold ${toneCls}`}>
-        {n.toLocaleString()}
+        <CountUp to={value} duration={1.2} separator="," />
         <span className="ml-1 text-[15px] font-bold text-faint">건</span>
       </div>
       {hint && <div className="mt-2 text-[12px] font-medium text-faint">{hint}</div>}

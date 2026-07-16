@@ -4,7 +4,12 @@ import { useFavorites } from './useFavorites'
 import { StatsRow } from './components/StatsRow'
 import { FilterBar, type Filters } from './components/FilterBar'
 import { ListingCard } from './components/ListingCard'
+import { MapModal } from './components/MapModal'
 import DotGrid from './components/DotGrid'
+import SplitText from './components/reactbits/SplitText'
+import ShinyText from './components/reactbits/ShinyText'
+import ClickSpark from './components/reactbits/ClickSpark'
+import AnimatedContent from './components/reactbits/AnimatedContent'
 import type { Listing } from './types'
 
 const PAGE_SIZE = 60
@@ -93,6 +98,7 @@ export default function App() {
   const fav = useFavorites()
   const [filters, setFilters] = useState<Filters>(DEFAULT_FILTERS)
   const [visible, setVisible] = useState(PAGE_SIZE)
+  const [mapItem, setMapItem] = useState<Listing | null>(null)
 
   const filtered = useMemo(() => {
     if (!data) return []
@@ -138,8 +144,10 @@ export default function App() {
                   <circle cx="14.1" cy="7.2" r="0.7" fill="white" opacity="0.9" />
                 </svg>
               </span>
-              <h1 className="text-[23px] font-bold tracking-tight text-ink">
-                스냅스팟 <span className="text-blue">매물 레이더</span>
+              <h1 className="flex items-baseline gap-1.5 text-[23px] font-bold tracking-tight text-ink">
+                <SplitText text="스냅스팟" tag="span" delay={45} duration={0.7} splitType="chars"
+                  from={{ opacity: 0, y: 18 }} to={{ opacity: 1, y: 0 }} threshold={0} />
+                <ShinyText text="매물 레이더" color="#3182f6" shineColor="#b9d7ff" speed={2.6} delay={1} />
               </h1>
             </div>
             <p className="mt-2 text-[14px] font-medium text-dim">
@@ -233,6 +241,7 @@ export default function App() {
                     i={i}
                     isFav={fav.isFav(item.id)}
                     onToggleFav={fav.toggle}
+                    onOpenMap={setMapItem}
                   />
                 ))}
               </div>
@@ -253,10 +262,23 @@ export default function App() {
       </main>
 
       <footer className="relative z-10 mx-auto max-w-6xl px-4 pt-4 pb-10 md:px-6">
-        <div className="border-t border-line-soft pt-5 text-center text-[12px] leading-relaxed text-faint">
-          개인용 비공식 도구 · 데이터 출처: 네이버 부동산 · 당근부동산 (자동 수집) · 가격/권리금은 반드시 중개사에 직접 확인하세요
-        </div>
+        <AnimatedContent distance={30} duration={0.7} threshold={0.2}>
+          <div className="border-t border-line-soft pt-5 text-center text-[12px] leading-relaxed text-faint">
+            개인용 비공식 도구 · 데이터 출처: 네이버 부동산 · 당근부동산 (자동 수집) · 가격/권리금은 반드시 중개사에 직접 확인하세요
+          </div>
+        </AnimatedContent>
       </footer>
+
+      {/* 인앱 지도 팝업 */}
+      <MapModal
+        item={mapItem}
+        onClose={() => setMapItem(null)}
+        isFav={mapItem ? fav.isFav(mapItem.id) : false}
+        onToggleFav={fav.toggle}
+      />
+
+      {/* 클릭 스파크 (전역 파티클) */}
+      <ClickSpark sparkColor="#3182f6" sparkSize={9} sparkRadius={22} sparkCount={8} duration={450} />
     </div>
   )
 }

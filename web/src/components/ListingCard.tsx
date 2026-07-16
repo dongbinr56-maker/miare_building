@@ -1,4 +1,5 @@
 import type { Listing, Source } from '../types'
+import SpotlightCard from './reactbits/SpotlightCard'
 
 function fmtMan(v: number | null): string {
   if (v === null) return '—'
@@ -14,11 +15,6 @@ function hasCoord(item: Listing): boolean {
   const lat = Number(item.lat)
   const lon = Number(item.lon)
   return Number.isFinite(lat) && Number.isFinite(lon) && Math.abs(lat) > 0.001 && Math.abs(lon) > 0.001
-}
-
-function kakaoMapUrl(item: Listing): string {
-  const name = `${item.dong} ${item.pyeong ?? ''}평 상가`.trim()
-  return `https://map.kakao.com/link/map/${encodeURIComponent(name)},${item.lat},${item.lon}`
 }
 
 function CheckPill({ ok, label }: { ok: boolean; label: string }) {
@@ -51,11 +47,13 @@ export function ListingCard({
   i,
   isFav,
   onToggleFav,
+  onOpenMap,
 }: {
   item: Listing
   i: number
   isFav: boolean
   onToggleFav: (item: Listing) => void
+  onOpenMap: (item: Listing) => void
 }) {
   const badge = LEVEL_BADGE[item.matchLevel]
   const cardCls =
@@ -64,7 +62,8 @@ export function ListingCard({
   const showMap = hasCoord(item)
 
   return (
-    <article
+    <SpotlightCard
+      spotlightColor="rgba(49, 130, 246, 0.09)"
       className={`rise group flex flex-col gap-3 rounded-3xl bg-surface p-5 transition-all duration-200 hover:-translate-y-1 hover:shadow-toss-hover ${cardCls}`}
       style={{ '--i': i } as React.CSSProperties}
     >
@@ -165,14 +164,12 @@ export function ListingCard({
         </span>
         <div className="ml-auto flex shrink-0 items-center gap-1.5">
           {showMap && (
-            <a
-              href={kakaoMapUrl(item)}
-              target="_blank"
-              rel="noreferrer noopener"
+            <button
+              onClick={() => onOpenMap(item)}
               className="inline-flex h-9 items-center gap-1 rounded-xl bg-surface-2 px-3 text-[12.5px] font-bold text-dim transition-colors hover:text-blue"
             >
               📍 지도
-            </a>
+            </button>
           )}
           <a
             href={item.link}
@@ -201,6 +198,6 @@ export function ListingCard({
           ))}
         </div>
       )}
-    </article>
+    </SpotlightCard>
   )
 }
