@@ -28,12 +28,12 @@ body {
   font-family: var(--font-sans);
   color: var(--color-ink);
   -webkit-font-smoothing: antialiased;
-  /* 은은한 도트 그리드 + 상단 민트 광원 */
+  /* 상단 민트/블루 광원 (도트 그리드는 DotGrid 캔버스가 담당) */
   background:
     radial-gradient(1100px 500px at 18% -10%, rgba(47, 214, 166, 0.07), transparent 60%),
     radial-gradient(900px 420px at 85% -14%, rgba(76, 132, 255, 0.055), transparent 60%),
-    radial-gradient(circle at 1px 1px, rgba(148, 163, 184, 0.05) 1px, transparent 0) 0 0 / 26px 26px,
     var(--color-canvas);
+  background-attachment: fixed;
 }
 
 ::selection {

@@ -3,6 +3,7 @@ import { useListings } from './useListings'
 import { StatsRow } from './components/StatsRow'
 import { FilterBar, type Filters } from './components/FilterBar'
 import { ListingCard } from './components/ListingCard'
+import DotGrid from './components/DotGrid'
 import type { Listing } from './types'
 
 const PAGE_SIZE = 60
@@ -98,8 +99,22 @@ export default function App() {
   }
 
   return (
-    <div className="min-h-screen">
-      <div className="mx-auto max-w-6xl px-4 md:px-6">
+    <div className="relative min-h-screen">
+      {/* 인터랙티브 도트 그리드 배경 (React Bits) */}
+      <div className="pointer-events-none fixed inset-0 z-0 opacity-70">
+        <DotGrid
+          dotSize={3}
+          gap={26}
+          baseColor="#1b2330"
+          activeColor="#2fd6a6"
+          proximity={110}
+          shockRadius={220}
+          shockStrength={4}
+          returnDuration={1.4}
+        />
+      </div>
+
+      <div className="relative z-10 mx-auto max-w-6xl px-4 md:px-6">
         {/* 헤더 */}
         <header className="flex flex-wrap items-center gap-x-4 gap-y-2 pt-8 pb-6">
           <div>
@@ -147,13 +162,13 @@ export default function App() {
 
       {/* 필터 (sticky) */}
       {data && (
-        <div className="mx-auto max-w-6xl px-4 md:px-6">
+        <div className="relative z-10 mx-auto max-w-6xl px-4 md:px-6">
           <FilterBar regions={data.regions} filters={filters} onChange={setFiltersReset} />
         </div>
       )}
 
       {/* 본문 */}
-      <main className="mx-auto max-w-6xl px-4 py-5 md:px-6">
+      <main className="relative z-10 mx-auto max-w-6xl px-4 py-5 md:px-6">
         {loading && <SkeletonGrid />}
 
         {error && (
@@ -204,9 +219,9 @@ export default function App() {
         )}
       </main>
 
-      <footer className="mx-auto max-w-6xl px-4 pt-4 pb-10 md:px-6">
+      <footer className="relative z-10 mx-auto max-w-6xl px-4 pt-4 pb-10 md:px-6">
         <div className="border-t border-line-soft pt-5 text-center text-[12px] leading-relaxed text-faint">
-          개인용 비공식 도구 · 데이터 출처: 네이버 부동산 (자동 수집) · 가격/권리금은 반드시 중개사에 직접 확인하세요
+          개인용 비공식 도구 · 데이터 출처: 네이버 부동산 · 당근부동산 (자동 수집) · 가격/권리금은 반드시 중개사에 직접 확인하세요
         </div>
       </footer>
     </div>
