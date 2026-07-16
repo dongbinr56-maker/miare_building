@@ -7,8 +7,11 @@ export interface Checks {
   pyeong: boolean
 }
 
+export type Source = 'naver' | 'daangn'
+
 export interface Listing {
   id: string
+  source: Source
   dong: string
   name: string
   typeName: string | null
@@ -58,6 +61,13 @@ export interface ListingData {
   tradeType: string
   realEstateTypes: string[]
   regions: RegionCount[]
-  stats: { total: number; full: number; near: number; new: number }
+  stats: {
+    total: number
+    full: number
+    near: number
+    new: number
+    naver?: number
+    daangn?: number
+  }
   listings: Listing[]
 }

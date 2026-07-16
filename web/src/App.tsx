@@ -9,6 +9,7 @@ const PAGE_SIZE = 60
 
 const DEFAULT_FILTERS: Filters = {
   dongs: [],
+  sources: [],
   level: 'nearUp',
   firstFloorOnly: false,
   noPremiumOnly: false,
@@ -24,6 +25,7 @@ function applyFilters(listings: Listing[], f: Filters): Listing[] {
   else if (f.level === 'nearUp') out = out.filter((x) => x.matchLevel !== 'low')
 
   if (f.dongs.length > 0) out = out.filter((x) => f.dongs.includes(x.dong))
+  if (f.sources.length > 0) out = out.filter((x) => f.sources.includes(x.source))
   if (f.firstFloorOnly) out = out.filter((x) => x.floor === 1)
   if (f.noPremiumOnly) out = out.filter((x) => x.noPremium)
   if (f.newOnly) out = out.filter((x) => x.isNew)

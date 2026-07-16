@@ -21,7 +21,10 @@
 ## 구조
 
 ```
-┌─ collector/collect.py     Playwright로 네이버 부동산 API 수집
+┌─ collector/collect.py     수집 오케스트레이터 (네이버 + 당근 병합)
+│   ├─ (내장) 네이버 부동산: new.land API를 브라우저 컨텍스트에서 호출
+│   ├─ daangn.py            당근 부동산: region API + GraphQL(APQ) 순수 HTTP 수집
+│   └─ rules.py             조건 평가 공통 로직
 │    └→ web/public/data/listings.json
 ├─ web/                     React + Vite + Tailwind 대시보드
 │    └→ GitHub Pages 배포
@@ -30,12 +33,25 @@
      └─ deploy.yml          main 푸시 시 Pages 빌드·배포
 ```
 
-### 왜 Playwright인가?
+### 왜 Playwright인가? (두 소스 모두)
 
-네이버 부동산 API는 일반 HTTP 클라이언트(requests 등)를 TLS 핑거프린팅으로 차단한다(429).
-유효한 토큰이 있어도 마찬가지. 그래서 수집기는 실제 Chromium을 띄우고
-**브라우저 컨텍스트 안에서(fetch)** API를 호출한다. 토큰은 페이지가 스스로 쓰는
-Authorization 헤더를 가로채 재사용하므로 별도 관리가 필요 없다.
+- **네이버**: 부동산 API는 일반 HTTP 클라이언트(requests 등)를 TLS 핑거프린팅으로
+  차단한다(429). 유효한 토큰이 있어도 마찬가지. 그래서 실제 Chromium을 띄우고
+  **브라우저 컨텍스트 안에서(fetch)** API를 호출한다. 토큰은 페이지가 스스로 쓰는
+  Authorization 헤더를 가로채 재사용한다.
+- **당근**: 브라우저가 필요 없다. ① 지역 해석 API
+  (`www.daangn.com/kr/api/v1/regions/keyword`)로 동 이름 → region id를 얻고,
+  ② GraphQL(`realty.kr.karrotmarket.com/graphql`)에 `articleByClusterId`
+  persisted query(APQ)를 커서 페이지네이션으로 호출한다. 응답이 이미
+  `originalId`·`trades`(보증금/월세)·`area`(㎡)·`floor`·`premiumMoney`(권리금)
+  같은 구조화된 필드를 주므로 텍스트 파싱 없이 정규화한다. 인증 토큰 불필요.
+  - **APQ 해시 주의**: 당근 프론트엔드 배포 시 persisted query 해시가 바뀔 수
+    있다. GraphQL이 `PersistedQueryNotFound`를 반환하면 개발자도구 Network에서
+    graphql 요청의 `sha256Hash`를 확인해 `config.json`의 `daangn.articleHash`를
+    갱신한다.
+
+두 소스 매물은 `id`에 `naver:` / `daangn:` 접두어를 붙여 구분하고, 대시보드에서
+출처 뱃지·필터로 나눠 볼 수 있다.
 
 ## 로컬 실행
 

@@ -28,6 +28,11 @@ const LEVEL_BADGE = {
   low: { cls: 'bg-surface-2 text-faint border-line', label: '조건 미달' },
 } as const
 
+const SOURCE_BADGE = {
+  naver: { cls: 'text-[#4ade80]', label: 'N' },
+  daangn: { cls: 'text-[#ff7e36]', label: '당근' },
+} as const
+
 export function ListingCard({ item, i }: { item: Listing; i: number }) {
   const badge = LEVEL_BADGE[item.matchLevel]
   const cardCls =
@@ -45,6 +50,11 @@ export function ListingCard({ item, i }: { item: Listing; i: number }) {
         </span>
         <span className="inline-flex h-6 items-center rounded-md border border-line bg-surface-2 px-2 text-[11.5px] font-semibold text-dim">
           {item.dong}
+        </span>
+        <span
+          className={`inline-flex h-6 items-center rounded-md border border-line bg-surface-2 px-2 text-[11px] font-bold ${SOURCE_BADGE[item.source]?.cls ?? 'text-dim'}`}
+        >
+          {SOURCE_BADGE[item.source]?.label ?? item.source}
         </span>
         {item.isNew && (
           <span className="inline-flex h-6 items-center rounded-md bg-sky-400/12 px-2 text-[11.5px] font-bold text-sky-400">
@@ -107,7 +117,7 @@ export function ListingCard({ item, i }: { item: Listing; i: number }) {
           rel="noreferrer noopener"
           className="ml-auto inline-flex h-8 shrink-0 items-center gap-1 rounded-lg border border-line bg-surface-2 px-3 text-[12.5px] font-semibold text-ink transition-colors hover:border-mint/40 hover:text-mint"
         >
-          네이버에서 보기 ↗
+          {item.source === 'daangn' ? '당근에서 보기' : '네이버에서 보기'} ↗
         </a>
       </div>
     </article>

@@ -5,6 +5,7 @@ export type SortKey = 'reco' | 'rentAsc' | 'depositAsc' | 'pyeongAsc' | 'recent'
 
 export interface Filters {
   dongs: string[]
+  sources: string[]
   level: LevelFilter
   firstFloorOnly: boolean
   noPremiumOnly: boolean
@@ -12,6 +13,11 @@ export interface Filters {
   query: string
   sort: SortKey
 }
+
+const SOURCES: { key: string; label: string }[] = [
+  { key: 'naver', label: '네이버' },
+  { key: 'daangn', label: '당근' },
+]
 
 const LEVELS: { key: LevelFilter; label: string }[] = [
   { key: 'full', label: '충족만' },
@@ -105,6 +111,19 @@ export function FilterBar({
               </button>
             ))}
           </div>
+
+          {SOURCES.map((s) => (
+            <Chip
+              key={s.key}
+              active={filters.sources.includes(s.key)}
+              onClick={() => {
+                const has = filters.sources.includes(s.key)
+                set({ sources: has ? filters.sources.filter((x) => x !== s.key) : [...filters.sources, s.key] })
+              }}
+            >
+              {s.label}
+            </Chip>
+          ))}
 
           <Chip active={filters.firstFloorOnly} onClick={() => set({ firstFloorOnly: !filters.firstFloorOnly })}>
             1층만

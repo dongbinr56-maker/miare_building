@@ -24,6 +24,9 @@ from datetime import datetime, timezone, timedelta
 
 from playwright.sync_api import sync_playwright
 
+from rules import evaluate
+from daangn import collect_daangn
+
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 CONFIG_PATH = os.path.join(ROOT, "collector", "config.json")
 
@@ -154,19 +157,12 @@ def normalize(raw, dong, criteria):
     desc = raw.get("articleFeatureDesc") or ""
     no_premium = bool(NO_PREMIUM_RE.search(desc))
 
-    checks = {
-        "deposit": deposit is not None and deposit <= criteria["depositMax"],
-        "rent": rent is not None and rent <= criteria["rentMax"],
-        "floor": floor == 1 if criteria.get("requireFirstFloor") else True,
-        "pyeong": (pyeong is not None
-                   and criteria["pyeongMin"] <= pyeong <= criteria["pyeongMax"]),
-    }
-    passed = sum(checks.values())
-    match_level = "full" if passed == 4 else ("near" if passed == 3 else "low")
+    checks, match_level = evaluate(deposit, rent, floor, pyeong, criteria)
 
     article_no = str(raw.get("articleNo"))
     return {
-        "id": article_no,
+        "id": f"naver:{article_no}",
+        "source": "naver",
         "dong": dong,
         "name": raw.get("buildingName") or raw.get("articleName") or "상가",
         "typeName": raw.get("articleRealEstateTypeName") or raw.get("realEstateTypeName"),
@@ -208,7 +204,10 @@ def main():
                 prev = json.load(f)
             for it in prev.get("listings", []):
                 if it.get("firstSeen"):
-                    prev_first_seen[it["id"]] = it["firstSeen"]
+                    key = it["id"]
+                    if ":" not in key:  # 구버전 데이터(소스 접두어 없음) 마이그레이션
+                        key = f"naver:{key}"
+                    prev_first_seen[key] = it["firstSeen"]
         except Exception as e:
             log(f"이전 데이터 로드 실패(무시): {e!r}")
 
@@ -281,9 +280,22 @@ def main():
                     count += 1
                 sess.sleep()
             region_counts.append({"name": r["name"], "cortarNo": r["cortarNo"], "count": count})
-            log(f"{r['name']}: {count}건")
+            log(f"{r['name']}: {count}건 (네이버)")
 
         browser.close()
+
+    # 3) 당근 부동산 수집 (순수 HTTP, 브라우저 불필요)
+    if cfg.get("daangn", {}).get("enabled", True):
+        try:
+            for item in collect_daangn(cfg, criteria, log):
+                if item["id"] in seen_ids:
+                    continue
+                seen_ids.add(item["id"])
+                item["firstSeen"] = prev_first_seen.get(item["id"], today)
+                item["isNew"] = bool(prev_first_seen) and item["id"] not in prev_first_seen
+                listings.append(item)
+        except Exception as e:
+            log(f"당근 수집 전체 실패(네이버 데이터만 저장): {e!r}")
 
     if not listings and prev_first_seen:
         log("수집 결과 0건 + 이전 데이터 존재 -> 기존 파일 유지, 실패로 종료")
@@ -306,6 +318,8 @@ def main():
             "full": sum(1 for x in listings if x["matchLevel"] == "full"),
             "near": sum(1 for x in listings if x["matchLevel"] == "near"),
             "new": sum(1 for x in listings if x.get("isNew")),
+            "naver": sum(1 for x in listings if x.get("source") == "naver"),
+            "daangn": sum(1 for x in listings if x.get("source") == "daangn"),
         },
         "listings": listings,
     }
