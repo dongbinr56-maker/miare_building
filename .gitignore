@@ -1,0 +1,15 @@
+# 민감 문서 (사업계획서 등) - 공개 저장소에 올리지 않음
+docs/
+
+# Node
+node_modules/
+web/dist/
+
+# Python
+__pycache__/
+*.pyc
+.venv/
+
+# 로컬 산출물
+collector/.cache/
+*.log

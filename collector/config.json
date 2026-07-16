@@ -1,0 +1,15 @@
+{
+  "regionSearchPrefix": "광산구",
+  "regions": ["신가동", "신창동", "하남동", "수완동"],
+  "realEstateTypes": ["SG"],
+  "tradeType": "B2",
+  "maxPagesPerRegion": 60,
+  "criteria": {
+    "depositMax": 500,
+    "rentMax": 45,
+    "pyeongMin": 4,
+    "pyeongMax": 10,
+    "requireFirstFloor": true
+  },
+  "output": "web/public/data/listings.json"
+}
