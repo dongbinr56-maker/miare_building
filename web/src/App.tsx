@@ -127,11 +127,19 @@ export default function App() {
         <header className="flex flex-wrap items-center gap-x-4 gap-y-3 pt-8 pb-6">
           <div>
             <div className="flex items-center gap-2.5">
-              <span className="grid h-10 w-10 place-items-center rounded-2xl bg-blue text-[18px] shadow-toss">
-                📷
+              <span className="grid h-10 w-10 place-items-center rounded-2xl bg-gradient-to-br from-[#4593fc] to-[#1b64da] shadow-toss">
+                <svg width="23" height="23" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                  <path
+                    d="M12 2.2c-4.1 0-7.4 3.2-7.4 7.2 0 4.9 5.7 10.3 7 11.4.2.2.6.2.8 0 1.3-1.1 7-6.5 7-11.4 0-4-3.3-7.2-7.4-7.2Z"
+                    fill="white"
+                  />
+                  <circle cx="12" cy="9.3" r="3.4" fill="#1b64da" />
+                  <circle cx="12" cy="9.3" r="1.35" fill="white" />
+                  <circle cx="14.1" cy="7.2" r="0.7" fill="white" opacity="0.9" />
+                </svg>
               </span>
               <h1 className="text-[23px] font-bold tracking-tight text-ink">
-                MIARE <span className="text-blue">매물 레이더</span>
+                스냅스팟 <span className="text-blue">매물 레이더</span>
               </h1>
             </div>
             <p className="mt-2 text-[14px] font-medium text-dim">
