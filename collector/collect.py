@@ -26,6 +26,7 @@ from playwright.sync_api import sync_playwright
 
 from rules import evaluate
 from daangn import collect_daangn
+from dedupe import merge_duplicates
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 CONFIG_PATH = os.path.join(ROOT, "collector", "config.json")
@@ -301,6 +302,11 @@ def main():
         log("수집 결과 0건 + 이전 데이터 존재 -> 기존 파일 유지, 실패로 종료")
         sys.exit(1)
 
+    # 중복 병합 (가격·평·층 동일 + 좌표 근접)
+    raw_count = len(listings)
+    listings = merge_duplicates(listings)
+    log(f"중복 병합: {raw_count}건 -> {len(listings)}건 ({raw_count - len(listings)}건 병합)")
+
     # 정렬: 충족 우선 -> 월세 낮은순 -> 보증금 낮은순
     level_order = {"full": 0, "near": 1, "low": 2}
     listings.sort(key=lambda x: (level_order[x["matchLevel"]],
@@ -320,6 +326,8 @@ def main():
             "new": sum(1 for x in listings if x.get("isNew")),
             "naver": sum(1 for x in listings if x.get("source") == "naver"),
             "daangn": sum(1 for x in listings if x.get("source") == "daangn"),
+            "merged": raw_count - len(listings),
+            "crossListed": sum(1 for x in listings if len(x.get("sources", [])) > 1),
         },
         "listings": listings,
     }

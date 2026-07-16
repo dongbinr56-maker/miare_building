@@ -39,6 +39,9 @@ export interface Listing {
   matchLevel: MatchLevel
   firstSeen: string
   isNew: boolean
+  dupCount?: number
+  sources?: Source[]
+  altLinks?: { source: Source; link: string }[]
 }
 
 export interface Criteria {
@@ -68,6 +71,8 @@ export interface ListingData {
     new: number
     naver?: number
     daangn?: number
+    merged?: number
+    crossListed?: number
   }
   listings: Listing[]
 }

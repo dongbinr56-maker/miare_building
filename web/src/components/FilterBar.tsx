@@ -10,6 +10,7 @@ export interface Filters {
   firstFloorOnly: boolean
   noPremiumOnly: boolean
   newOnly: boolean
+  favOnly: boolean
   query: string
   sort: SortKey
 }
@@ -60,10 +61,12 @@ export function FilterBar({
   regions,
   filters,
   onChange,
+  favCount,
 }: {
   regions: RegionCount[]
   filters: Filters
   onChange: (f: Filters) => void
+  favCount: number
 }) {
   const set = (patch: Partial<Filters>) => onChange({ ...filters, ...patch })
 
@@ -136,6 +139,17 @@ export function FilterBar({
           <Chip active={filters.newOnly} onClick={() => set({ newOnly: !filters.newOnly })}>
             신규만
           </Chip>
+          <button
+            onClick={() => set({ favOnly: !filters.favOnly })}
+            className={`inline-flex h-9 shrink-0 items-center gap-1 rounded-full px-3.5 text-[13px] font-semibold transition-all duration-150 ${
+              filters.favOnly
+                ? 'bg-rose text-white shadow-toss'
+                : 'bg-surface text-dim shadow-toss hover:text-ink'
+            }`}
+          >
+            {filters.favOnly ? '♥' : '♡'} 즐겨찾기
+            {favCount > 0 && <span className="tnum text-[11px] opacity-70">{favCount}</span>}
+          </button>
 
           <select
             value={filters.sort}

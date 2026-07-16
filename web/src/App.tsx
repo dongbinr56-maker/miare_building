@@ -1,5 +1,6 @@
 import { useMemo, useState } from 'react'
 import { useListings } from './useListings'
+import { useFavorites } from './useFavorites'
 import { StatsRow } from './components/StatsRow'
 import { FilterBar, type Filters } from './components/FilterBar'
 import { ListingCard } from './components/ListingCard'
@@ -15,6 +16,7 @@ const DEFAULT_FILTERS: Filters = {
   firstFloorOnly: false,
   noPremiumOnly: false,
   newOnly: false,
+  favOnly: false,
   query: '',
   sort: 'reco',
 }
@@ -22,8 +24,11 @@ const DEFAULT_FILTERS: Filters = {
 function applyFilters(listings: Listing[], f: Filters): Listing[] {
   let out = listings
 
-  if (f.level === 'full') out = out.filter((x) => x.matchLevel === 'full')
-  else if (f.level === 'nearUp') out = out.filter((x) => x.matchLevel !== 'low')
+  // 즐겨찾기 보기에서는 매치 레벨 필터를 건너뛴다(찜한 건 다 보여줌)
+  if (!f.favOnly) {
+    if (f.level === 'full') out = out.filter((x) => x.matchLevel === 'full')
+    else if (f.level === 'nearUp') out = out.filter((x) => x.matchLevel !== 'low')
+  }
 
   if (f.dongs.length > 0) out = out.filter((x) => f.dongs.includes(x.dong))
   if (f.sources.length > 0) out = out.filter((x) => f.sources.includes(x.source))
@@ -85,13 +90,16 @@ function SkeletonGrid() {
 
 export default function App() {
   const { data, error, loading } = useListings()
+  const fav = useFavorites()
   const [filters, setFilters] = useState<Filters>(DEFAULT_FILTERS)
   const [visible, setVisible] = useState(PAGE_SIZE)
 
-  const filtered = useMemo(
-    () => (data ? applyFilters(data.listings, filters) : []),
-    [data, filters],
-  )
+  const filtered = useMemo(() => {
+    if (!data) return []
+    // 즐겨찾기 보기: 저장된 스냅샷을 소스로(매물이 내려가도 유지)
+    const source = filters.favOnly ? Object.values(fav.snapshots) : data.listings
+    return applyFilters(source, filters)
+  }, [data, filters, fav.snapshots])
 
   const setFiltersReset = (f: Filters) => {
     setFilters(f)
@@ -163,7 +171,7 @@ export default function App() {
       {/* 필터 (sticky) */}
       {data && (
         <div className="relative z-10 mx-auto max-w-6xl px-4 md:px-6">
-          <FilterBar regions={data.regions} filters={filters} onChange={setFiltersReset} />
+          <FilterBar regions={data.regions} filters={filters} onChange={setFiltersReset} favCount={fav.count} />
         </div>
       )}
 
@@ -186,10 +194,21 @@ export default function App() {
 
             {filtered.length === 0 ? (
               <div className="rounded-3xl bg-surface p-10 text-center shadow-toss">
-                <p className="text-[16px] font-bold text-ink">조건에 맞는 매물이 없어요</p>
-                <p className="mt-2 text-[13.5px] text-dim">
-                  필터를 넓혀보세요 — 매물은 주기적으로 자동 수집돼요.
-                </p>
+                {filters.favOnly ? (
+                  <>
+                    <p className="text-[16px] font-bold text-ink">아직 즐겨찾기한 매물이 없어요</p>
+                    <p className="mt-2 text-[13.5px] text-dim">
+                      마음에 드는 매물의 ♡를 눌러 저장하면 여기 모여요.
+                    </p>
+                  </>
+                ) : (
+                  <>
+                    <p className="text-[16px] font-bold text-ink">조건에 맞는 매물이 없어요</p>
+                    <p className="mt-2 text-[13.5px] text-dim">
+                      필터를 넓혀보세요 — 매물은 주기적으로 자동 수집돼요.
+                    </p>
+                  </>
+                )}
                 <button
                   onClick={() => setFiltersReset(DEFAULT_FILTERS)}
                   className="mt-4 h-10 rounded-xl bg-blue px-4 text-[13.5px] font-bold text-white transition-colors hover:bg-blue-deep"
@@ -200,7 +219,13 @@ export default function App() {
             ) : (
               <div className="grid grid-cols-1 gap-3.5 sm:grid-cols-2 lg:grid-cols-3">
                 {filtered.slice(0, visible).map((item, i) => (
-                  <ListingCard key={item.id} item={item} i={i} />
+                  <ListingCard
+                    key={item.id}
+                    item={item}
+                    i={i}
+                    isFav={fav.isFav(item.id)}
+                    onToggleFav={fav.toggle}
+                  />
                 ))}
               </div>
             )}
