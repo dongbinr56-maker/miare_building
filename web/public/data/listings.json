@@ -1,5 +1,5 @@
 {
- "updatedAt": "2026-07-19T12:50:29+09:00",
+ "updatedAt": "2026-07-19T14:29:42+09:00",
  "criteria": {
   "depositMax": 500,
   "rentMax": 45,
@@ -37,7 +37,7 @@
   "total": 1673,
   "full": 7,
   "near": 30,
-  "new": 1,
+  "new": 4,
   "naver": 812,
   "daangn": 861,
   "merged": 691,
@@ -13857,6 +13857,100 @@
    "altLinks": []
   },
   {
+   "id": "naver:2634297204",
+   "source": "naver",
+   "dong": "신가동",
+   "name": "일반상가",
+   "typeName": "상가점포",
+   "tradeTypeName": "월세",
+   "deposit": 1000,
+   "rent": 80,
+   "floor": 1,
+   "totalFloor": 3,
+   "floorRaw": "1/3",
+   "areaM2": 39,
+   "pyeong": 11.8,
+   "desc": "아파트 정문 앞 대로변 상가 , 초등 학교 부근 , 시권 저렴",
+   "tags": [
+    "25년이내",
+    "1층",
+    "주차가능",
+    "총3층"
+   ],
+   "noPremium": false,
+   "direction": "북향",
+   "confirmedAt": "20260626",
+   "realtor": "포인트공인중개사사무소",
+   "cpName": "부동산써브",
+   "lat": "35.188419",
+   "lon": "126.836182",
+   "sameAddrCnt": 1,
+   "link": "https://new.land.naver.com/offices?articleNo=2634297204",
+   "mobileLink": "https://m.land.naver.com/article/info/2634297204",
+   "checks": {
+    "deposit": false,
+    "rent": false,
+    "floor": true,
+    "pyeong": false
+   },
+   "matchLevel": "low",
+   "firstSeen": "2026-07-16",
+   "isNew": false,
+   "dupCount": 2,
+   "sources": [
+    "naver"
+   ],
+   "altLinks": [
+    {
+     "source": "naver",
+     "link": "https://new.land.naver.com/offices?articleNo=2635067636"
+    }
+   ]
+  },
+  {
+   "id": "daangn:3554307",
+   "source": "daangn",
+   "dong": "신가동",
+   "name": "당근 상가",
+   "typeName": "상가",
+   "tradeTypeName": "월세",
+   "deposit": 1000,
+   "rent": 80,
+   "floor": 1,
+   "totalFloor": 3,
+   "floorRaw": "1/3",
+   "areaM2": 39.7,
+   "pyeong": 12.0,
+   "desc": "무권리 · 중개",
+   "tags": [
+    "중개"
+   ],
+   "noPremium": true,
+   "direction": null,
+   "confirmedAt": "20260708",
+   "realtor": null,
+   "cpName": "당근부동산",
+   "lat": "35.2000144",
+   "lon": "126.8225096",
+   "sameAddrCnt": null,
+   "link": "https://realty.daangn.com/articles/3554307",
+   "mobileLink": "https://realty.daangn.com/articles/3554307",
+   "checks": {
+    "deposit": false,
+    "rent": false,
+    "floor": true,
+    "pyeong": false
+   },
+   "matchLevel": "low",
+   "firstSeen": "2026-07-16",
+   "isNew": false,
+   "dupCount": 1,
+   "sources": [
+    "daangn"
+   ],
+   "altLinks": []
+  },
+  {
    "id": "naver:2634456037",
    "source": "naver",
    "dong": "신가동",
@@ -14046,100 +14140,6 @@
     "rent": false,
     "floor": true,
     "pyeong": true
-   },
-   "matchLevel": "low",
-   "firstSeen": "2026-07-16",
-   "isNew": false,
-   "dupCount": 1,
-   "sources": [
-    "daangn"
-   ],
-   "altLinks": []
-  },
-  {
-   "id": "naver:2634297204",
-   "source": "naver",
-   "dong": "신가동",
-   "name": "일반상가",
-   "typeName": "상가점포",
-   "tradeTypeName": "월세",
-   "deposit": 1000,
-   "rent": 80,
-   "floor": 1,
-   "totalFloor": 3,
-   "floorRaw": "1/3",
-   "areaM2": 39,
-   "pyeong": 11.8,
-   "desc": "아파트 정문 앞 대로변 상가 , 초등 학교 부근 , 시권 저렴",
-   "tags": [
-    "25년이내",
-    "1층",
-    "주차가능",
-    "총3층"
-   ],
-   "noPremium": false,
-   "direction": "북향",
-   "confirmedAt": "20260626",
-   "realtor": "포인트공인중개사사무소",
-   "cpName": "부동산써브",
-   "lat": "35.188419",
-   "lon": "126.836182",
-   "sameAddrCnt": 1,
-   "link": "https://new.land.naver.com/offices?articleNo=2634297204",
-   "mobileLink": "https://m.land.naver.com/article/info/2634297204",
-   "checks": {
-    "deposit": false,
-    "rent": false,
-    "floor": true,
-    "pyeong": false
-   },
-   "matchLevel": "low",
-   "firstSeen": "2026-07-16",
-   "isNew": false,
-   "dupCount": 2,
-   "sources": [
-    "naver"
-   ],
-   "altLinks": [
-    {
-     "source": "naver",
-     "link": "https://new.land.naver.com/offices?articleNo=2635067636"
-    }
-   ]
-  },
-  {
-   "id": "daangn:3554307",
-   "source": "daangn",
-   "dong": "신가동",
-   "name": "당근 상가",
-   "typeName": "상가",
-   "tradeTypeName": "월세",
-   "deposit": 1000,
-   "rent": 80,
-   "floor": 1,
-   "totalFloor": 3,
-   "floorRaw": "1/3",
-   "areaM2": 39.7,
-   "pyeong": 12.0,
-   "desc": "무권리 · 중개",
-   "tags": [
-    "중개"
-   ],
-   "noPremium": true,
-   "direction": null,
-   "confirmedAt": "20260708",
-   "realtor": null,
-   "cpName": "당근부동산",
-   "lat": "35.2000144",
-   "lon": "126.8225096",
-   "sameAddrCnt": null,
-   "link": "https://realty.daangn.com/articles/3554307",
-   "mobileLink": "https://realty.daangn.com/articles/3554307",
-   "checks": {
-    "deposit": false,
-    "rent": false,
-    "floor": true,
-    "pyeong": false
    },
    "matchLevel": "low",
    "firstSeen": "2026-07-16",
@@ -15981,7 +15981,7 @@
    ]
   },
   {
-   "id": "naver:2637492479",
+   "id": "naver:2637604624",
    "source": "naver",
    "dong": "수완동",
    "name": "단지내상가",
@@ -16008,9 +16008,9 @@
    "cpName": "부동산써브",
    "lat": "35.18889",
    "lon": "126.827321",
-   "sameAddrCnt": 1,
-   "link": "https://new.land.naver.com/offices?articleNo=2637492479",
-   "mobileLink": "https://m.land.naver.com/article/info/2637492479",
+   "sameAddrCnt": 2,
+   "link": "https://new.land.naver.com/offices?articleNo=2637604624",
+   "mobileLink": "https://m.land.naver.com/article/info/2637604624",
    "checks": {
     "deposit": false,
     "rent": false,
@@ -16019,7 +16019,7 @@
    },
    "matchLevel": "low",
    "firstSeen": "2026-07-19",
-   "isNew": false,
+   "isNew": true,
    "dupCount": 4,
    "sources": [
     "naver"
@@ -16027,7 +16027,7 @@
    "altLinks": [
     {
      "source": "naver",
-     "link": "https://new.land.naver.com/offices?articleNo=2637604624"
+     "link": "https://new.land.naver.com/offices?articleNo=2637492479"
     },
     {
      "source": "naver",
@@ -22535,10 +22535,10 @@
    "altLinks": []
   },
   {
-   "id": "naver:2636888965",
+   "id": "naver:2636888151",
    "source": "naver",
    "dong": "신가동",
-   "name": "단지내상가",
+   "name": "일반상가",
    "typeName": "상가점포",
    "tradeTypeName": "월세",
    "deposit": 2000,
@@ -22548,7 +22548,7 @@
    "floorRaw": "1/2",
    "areaM2": 35,
    "pyeong": 10.6,
-   "desc": "신축3년차내부깨끗.권리금없음.즉시입주가능.세탁소추천.",
+   "desc": "신축아파트상가.세탁소추천.권리금없음.즉시입주가능",
    "tags": [
     "10년이내",
     "1층",
@@ -22563,8 +22563,8 @@
    "lat": "0",
    "lon": "0",
    "sameAddrCnt": 3,
-   "link": "https://new.land.naver.com/offices?articleNo=2636888965",
-   "mobileLink": "https://m.land.naver.com/article/info/2636888965",
+   "link": "https://new.land.naver.com/offices?articleNo=2636888151",
+   "mobileLink": "https://m.land.naver.com/article/info/2636888151",
    "checks": {
     "deposit": false,
     "rent": false,
@@ -22585,7 +22585,7 @@
     },
     {
      "source": "naver",
-     "link": "https://new.land.naver.com/offices?articleNo=2636888151"
+     "link": "https://new.land.naver.com/offices?articleNo=2636888965"
     }
    ]
   },
@@ -29389,11 +29389,11 @@
    "altLinks": [
     {
      "source": "naver",
-     "link": "https://new.land.naver.com/offices?articleNo=2636871781"
+     "link": "https://new.land.naver.com/offices?articleNo=2636887418"
     },
     {
      "source": "naver",
-     "link": "https://new.land.naver.com/offices?articleNo=2636887418"
+     "link": "https://new.land.naver.com/offices?articleNo=2636871781"
     },
     {
      "source": "naver",
@@ -29898,95 +29898,6 @@
    "altLinks": []
   },
   {
-   "id": "naver:2638302068",
-   "source": "naver",
-   "dong": "하남동",
-   "name": "일반상가",
-   "typeName": "상가점포",
-   "tradeTypeName": "월세",
-   "deposit": 2000,
-   "rent": 120,
-   "floor": 2,
-   "totalFloor": 4,
-   "floorRaw": "2/4",
-   "areaM2": 142,
-   "pyeong": 43.0,
-   "desc": "하남3지구 모아엘가 근처 대로변 깔끔한 인테리어 사무실 추천 권리금 없음",
-   "tags": [
-    "10년이내",
-    "중층",
-    "관리비10만원이하",
-    "주차가능"
-   ],
-   "noPremium": true,
-   "direction": "동향",
-   "confirmedAt": "20260716",
-   "realtor": "화원공인중개사사무소",
-   "cpName": "부동산써브",
-   "lat": "35.183427",
-   "lon": "126.795198",
-   "sameAddrCnt": 1,
-   "link": "https://new.land.naver.com/offices?articleNo=2638302068",
-   "mobileLink": "https://m.land.naver.com/article/info/2638302068",
-   "checks": {
-    "deposit": false,
-    "rent": false,
-    "floor": false,
-    "pyeong": false
-   },
-   "matchLevel": "low",
-   "firstSeen": "2026-07-16",
-   "isNew": false,
-   "dupCount": 1,
-   "sources": [
-    "naver"
-   ],
-   "altLinks": []
-  },
-  {
-   "id": "daangn:3260280",
-   "source": "daangn",
-   "dong": "하남동",
-   "name": "당근 상가",
-   "typeName": "상가",
-   "tradeTypeName": "월세",
-   "deposit": 2000,
-   "rent": 120,
-   "floor": 2,
-   "totalFloor": 4,
-   "floorRaw": "2/4",
-   "areaM2": 142.3,
-   "pyeong": 43.0,
-   "desc": "관리비 2만원 · 중개",
-   "tags": [
-    "중개"
-   ],
-   "noPremium": true,
-   "direction": null,
-   "confirmedAt": "20260713",
-   "realtor": null,
-   "cpName": "당근부동산",
-   "lat": "35.1929850",
-   "lon": "126.7979702",
-   "sameAddrCnt": null,
-   "link": "https://realty.daangn.com/articles/3260280",
-   "mobileLink": "https://realty.daangn.com/articles/3260280",
-   "checks": {
-    "deposit": false,
-    "rent": false,
-    "floor": false,
-    "pyeong": false
-   },
-   "matchLevel": "low",
-   "firstSeen": "2026-07-16",
-   "isNew": false,
-   "dupCount": 1,
-   "sources": [
-    "daangn"
-   ],
-   "altLinks": []
-  },
-  {
    "id": "naver:2638293130",
    "source": "naver",
    "dong": "하남동",
@@ -30060,6 +29971,95 @@
    "sameAddrCnt": null,
    "link": "https://realty.daangn.com/articles/2345346",
    "mobileLink": "https://realty.daangn.com/articles/2345346",
+   "checks": {
+    "deposit": false,
+    "rent": false,
+    "floor": false,
+    "pyeong": false
+   },
+   "matchLevel": "low",
+   "firstSeen": "2026-07-16",
+   "isNew": false,
+   "dupCount": 1,
+   "sources": [
+    "daangn"
+   ],
+   "altLinks": []
+  },
+  {
+   "id": "naver:2638302068",
+   "source": "naver",
+   "dong": "하남동",
+   "name": "일반상가",
+   "typeName": "상가점포",
+   "tradeTypeName": "월세",
+   "deposit": 2000,
+   "rent": 120,
+   "floor": 2,
+   "totalFloor": 4,
+   "floorRaw": "2/4",
+   "areaM2": 142,
+   "pyeong": 43.0,
+   "desc": "하남3지구 모아엘가 근처 대로변 깔끔한 인테리어 사무실 추천 권리금 없음",
+   "tags": [
+    "10년이내",
+    "중층",
+    "관리비10만원이하",
+    "주차가능"
+   ],
+   "noPremium": true,
+   "direction": "동향",
+   "confirmedAt": "20260716",
+   "realtor": "화원공인중개사사무소",
+   "cpName": "부동산써브",
+   "lat": "35.183427",
+   "lon": "126.795198",
+   "sameAddrCnt": 1,
+   "link": "https://new.land.naver.com/offices?articleNo=2638302068",
+   "mobileLink": "https://m.land.naver.com/article/info/2638302068",
+   "checks": {
+    "deposit": false,
+    "rent": false,
+    "floor": false,
+    "pyeong": false
+   },
+   "matchLevel": "low",
+   "firstSeen": "2026-07-16",
+   "isNew": false,
+   "dupCount": 1,
+   "sources": [
+    "naver"
+   ],
+   "altLinks": []
+  },
+  {
+   "id": "daangn:3260280",
+   "source": "daangn",
+   "dong": "하남동",
+   "name": "당근 상가",
+   "typeName": "상가",
+   "tradeTypeName": "월세",
+   "deposit": 2000,
+   "rent": 120,
+   "floor": 2,
+   "totalFloor": 4,
+   "floorRaw": "2/4",
+   "areaM2": 142.3,
+   "pyeong": 43.0,
+   "desc": "관리비 2만원 · 중개",
+   "tags": [
+    "중개"
+   ],
+   "noPremium": true,
+   "direction": null,
+   "confirmedAt": "20260713",
+   "realtor": null,
+   "cpName": "당근부동산",
+   "lat": "35.1929850",
+   "lon": "126.7979702",
+   "sameAddrCnt": null,
+   "link": "https://realty.daangn.com/articles/3260280",
+   "mobileLink": "https://realty.daangn.com/articles/3260280",
    "checks": {
     "deposit": false,
     "rent": false,
@@ -30300,7 +30300,7 @@
    "altLinks": []
   },
   {
-   "id": "naver:2637008394",
+   "id": "naver:2636956380",
    "source": "naver",
    "dong": "수완동",
    "name": "일반상가",
@@ -30313,23 +30313,23 @@
    "floorRaw": "1/3",
    "areaM2": 45,
    "pyeong": 13.6,
-   "desc": "KangHO＊사진有 무권리＊지구대건너편 코너위치 개방감좋음 내부시설깔끔",
+   "desc": "지구대맞은편 무권리상가 대로변노출상가 시설완비 시스템에어컨有",
    "tags": [
     "15년이내",
     "1층",
     "주차가능",
-    "총3층"
+    "천장에어컨"
    ],
    "noPremium": true,
    "direction": "남향",
    "confirmedAt": "20260709",
-   "realtor": "강호부동산중개사무소",
+   "realtor": "태인공인중개사사무소",
    "cpName": "부동산써브",
    "lat": "35.193052",
    "lon": "126.830207",
    "sameAddrCnt": 1,
-   "link": "https://new.land.naver.com/offices?articleNo=2637008394",
-   "mobileLink": "https://m.land.naver.com/article/info/2637008394",
+   "link": "https://new.land.naver.com/offices?articleNo=2636956380",
+   "mobileLink": "https://m.land.naver.com/article/info/2636956380",
    "checks": {
     "deposit": false,
     "rent": false,
@@ -30337,8 +30337,8 @@
     "pyeong": false
    },
    "matchLevel": "low",
-   "firstSeen": "2026-07-16",
-   "isNew": false,
+   "firstSeen": "2026-07-19",
+   "isNew": true,
    "dupCount": 7,
    "sources": [
     "naver",
@@ -30347,7 +30347,7 @@
    "altLinks": [
     {
      "source": "naver",
-     "link": "https://new.land.naver.com/offices?articleNo=2636956380"
+     "link": "https://new.land.naver.com/offices?articleNo=2637008394"
     },
     {
      "source": "naver",
@@ -34809,52 +34809,6 @@
    ]
   },
   {
-   "id": "naver:2637783520",
-   "source": "naver",
-   "dong": "신창동",
-   "name": "일반상가",
-   "typeName": "상가점포",
-   "tradeTypeName": "월세",
-   "deposit": 3000,
-   "rent": 130,
-   "floor": 2,
-   "totalFloor": 6,
-   "floorRaw": "2/6",
-   "areaM2": 87,
-   "pyeong": 26.3,
-   "desc": "아파트 단지 사거리, 사무실, 뷰티샵, 미용실, 의원 추천",
-   "tags": [
-    "25년이내",
-    "지상층(1층제외)",
-    "관리비20만원이하",
-    "주차가능"
-   ],
-   "noPremium": false,
-   "direction": "남서향",
-   "confirmedAt": "20260713",
-   "realtor": "수완아크로공인중개사사무소",
-   "cpName": "부동산써브",
-   "lat": "35.196631",
-   "lon": "126.836779",
-   "sameAddrCnt": 1,
-   "link": "https://new.land.naver.com/offices?articleNo=2637783520",
-   "mobileLink": "https://m.land.naver.com/article/info/2637783520",
-   "checks": {
-    "deposit": false,
-    "rent": false,
-    "floor": false,
-    "pyeong": false
-   },
-   "matchLevel": "low",
-   "firstSeen": "2026-07-16",
-   "isNew": false,
-   "dupCount": 1,
-   "sources": [
-    "naver"
-   ],
-   "altLinks": []
-  },
-  {
    "id": "naver:2637783363",
    "source": "naver",
    "dong": "신창동",
@@ -34885,6 +34839,52 @@
    "sameAddrCnt": 1,
    "link": "https://new.land.naver.com/offices?articleNo=2637783363",
    "mobileLink": "https://m.land.naver.com/article/info/2637783363",
+   "checks": {
+    "deposit": false,
+    "rent": false,
+    "floor": false,
+    "pyeong": false
+   },
+   "matchLevel": "low",
+   "firstSeen": "2026-07-16",
+   "isNew": false,
+   "dupCount": 1,
+   "sources": [
+    "naver"
+   ],
+   "altLinks": []
+  },
+  {
+   "id": "naver:2637783520",
+   "source": "naver",
+   "dong": "신창동",
+   "name": "일반상가",
+   "typeName": "상가점포",
+   "tradeTypeName": "월세",
+   "deposit": 3000,
+   "rent": 130,
+   "floor": 2,
+   "totalFloor": 6,
+   "floorRaw": "2/6",
+   "areaM2": 87,
+   "pyeong": 26.3,
+   "desc": "아파트 단지 사거리, 사무실, 뷰티샵, 미용실, 의원 추천",
+   "tags": [
+    "25년이내",
+    "지상층(1층제외)",
+    "관리비20만원이하",
+    "주차가능"
+   ],
+   "noPremium": false,
+   "direction": "남서향",
+   "confirmedAt": "20260713",
+   "realtor": "수완아크로공인중개사사무소",
+   "cpName": "부동산써브",
+   "lat": "35.196631",
+   "lon": "126.836779",
+   "sameAddrCnt": 1,
+   "link": "https://new.land.naver.com/offices?articleNo=2637783520",
+   "mobileLink": "https://m.land.naver.com/article/info/2637783520",
    "checks": {
     "deposit": false,
     "rent": false,
@@ -36929,6 +36929,52 @@
    "altLinks": []
   },
   {
+   "id": "naver:2637688288",
+   "source": "naver",
+   "dong": "신창동",
+   "name": "일반상가",
+   "typeName": "상가점포",
+   "tradeTypeName": "월세",
+   "deposit": 3000,
+   "rent": 140,
+   "floor": 5,
+   "totalFloor": 6,
+   "floorRaw": "5/6",
+   "areaM2": 210,
+   "pyeong": 63.5,
+   "desc": "신창동 메인상가, 유동인구 많음, 모든업종가능",
+   "tags": [
+    "25년이내",
+    "고층",
+    "관리비20만원이하",
+    "주차가능"
+   ],
+   "noPremium": false,
+   "direction": "동향",
+   "confirmedAt": "20260713",
+   "realtor": "에이스 진 공인중개사사무소",
+   "cpName": "매경부동산",
+   "lat": "35.196468",
+   "lon": "126.838161",
+   "sameAddrCnt": 2,
+   "link": "https://new.land.naver.com/offices?articleNo=2637688288",
+   "mobileLink": "https://m.land.naver.com/article/info/2637688288",
+   "checks": {
+    "deposit": false,
+    "rent": false,
+    "floor": false,
+    "pyeong": false
+   },
+   "matchLevel": "low",
+   "firstSeen": "2026-07-16",
+   "isNew": false,
+   "dupCount": 1,
+   "sources": [
+    "naver"
+   ],
+   "altLinks": []
+  },
+  {
    "id": "naver:2637778715",
    "source": "naver",
    "dong": "신창동",
@@ -37073,52 +37119,6 @@
    "dupCount": 1,
    "sources": [
     "daangn"
-   ],
-   "altLinks": []
-  },
-  {
-   "id": "naver:2637688288",
-   "source": "naver",
-   "dong": "신창동",
-   "name": "일반상가",
-   "typeName": "상가점포",
-   "tradeTypeName": "월세",
-   "deposit": 3000,
-   "rent": 140,
-   "floor": 5,
-   "totalFloor": 6,
-   "floorRaw": "5/6",
-   "areaM2": 210,
-   "pyeong": 63.5,
-   "desc": "신창동 메인상가, 유동인구 많음, 모든업종가능",
-   "tags": [
-    "25년이내",
-    "고층",
-    "관리비20만원이하",
-    "주차가능"
-   ],
-   "noPremium": false,
-   "direction": "동향",
-   "confirmedAt": "20260713",
-   "realtor": "에이스 진 공인중개사사무소",
-   "cpName": "매경부동산",
-   "lat": "35.196468",
-   "lon": "126.838161",
-   "sameAddrCnt": 2,
-   "link": "https://new.land.naver.com/offices?articleNo=2637688288",
-   "mobileLink": "https://m.land.naver.com/article/info/2637688288",
-   "checks": {
-    "deposit": false,
-    "rent": false,
-    "floor": false,
-    "pyeong": false
-   },
-   "matchLevel": "low",
-   "firstSeen": "2026-07-16",
-   "isNew": false,
-   "dupCount": 1,
-   "sources": [
-    "naver"
    ],
    "altLinks": []
   },
@@ -51228,6 +51228,52 @@
    ]
   },
   {
+   "id": "naver:2637779428",
+   "source": "naver",
+   "dong": "신창동",
+   "name": "일반상가",
+   "typeName": "상가점포",
+   "tradeTypeName": "월세",
+   "deposit": 3000,
+   "rent": 200,
+   "floor": 3,
+   "totalFloor": 4,
+   "floorRaw": "3/4",
+   "areaM2": 207,
+   "pyeong": 62.6,
+   "desc": "영어학원, 피부샵, 필라테스 추천, 부영5차앞, 시권없음",
+   "tags": [
+    "25년이내",
+    "고층",
+    "관리비20만원이하",
+    "주차가능"
+   ],
+   "noPremium": false,
+   "direction": "서향",
+   "confirmedAt": "20260713",
+   "realtor": "수완아크로공인중개사사무소",
+   "cpName": "부동산써브",
+   "lat": "35.192643",
+   "lon": "126.837481",
+   "sameAddrCnt": 1,
+   "link": "https://new.land.naver.com/offices?articleNo=2637779428",
+   "mobileLink": "https://m.land.naver.com/article/info/2637779428",
+   "checks": {
+    "deposit": false,
+    "rent": false,
+    "floor": false,
+    "pyeong": false
+   },
+   "matchLevel": "low",
+   "firstSeen": "2026-07-16",
+   "isNew": false,
+   "dupCount": 1,
+   "sources": [
+    "naver"
+   ],
+   "altLinks": []
+  },
+  {
    "id": "naver:2637514398",
    "source": "naver",
    "dong": "신창동",
@@ -51445,52 +51491,6 @@
    "dupCount": 1,
    "sources": [
     "daangn"
-   ],
-   "altLinks": []
-  },
-  {
-   "id": "naver:2637779428",
-   "source": "naver",
-   "dong": "신창동",
-   "name": "일반상가",
-   "typeName": "상가점포",
-   "tradeTypeName": "월세",
-   "deposit": 3000,
-   "rent": 200,
-   "floor": 3,
-   "totalFloor": 4,
-   "floorRaw": "3/4",
-   "areaM2": 207,
-   "pyeong": 62.6,
-   "desc": "영어학원, 피부샵, 필라테스 추천, 부영5차앞, 시권없음",
-   "tags": [
-    "25년이내",
-    "고층",
-    "관리비20만원이하",
-    "주차가능"
-   ],
-   "noPremium": false,
-   "direction": "서향",
-   "confirmedAt": "20260713",
-   "realtor": "수완아크로공인중개사사무소",
-   "cpName": "부동산써브",
-   "lat": "35.192643",
-   "lon": "126.837481",
-   "sameAddrCnt": 1,
-   "link": "https://new.land.naver.com/offices?articleNo=2637779428",
-   "mobileLink": "https://m.land.naver.com/article/info/2637779428",
-   "checks": {
-    "deposit": false,
-    "rent": false,
-    "floor": false,
-    "pyeong": false
-   },
-   "matchLevel": "low",
-   "firstSeen": "2026-07-16",
-   "isNew": false,
-   "dupCount": 1,
-   "sources": [
-    "naver"
    ],
    "altLinks": []
   },
@@ -52284,6 +52284,52 @@
    "altLinks": []
   },
   {
+   "id": "naver:2637153545",
+   "source": "naver",
+   "dong": "수완동",
+   "name": "일반상가",
+   "typeName": "상가점포",
+   "tradeTypeName": "월세",
+   "deposit": 3000,
+   "rent": 200,
+   "floor": 1,
+   "totalFloor": 3,
+   "floorRaw": "1/3",
+   "areaM2": 128,
+   "pyeong": 38.7,
+   "desc": "지구대건너편 메인먹자골목 내 유동인구많음 주점시설완비 권리금없음 즉시입주",
+   "tags": [
+    "15년이내",
+    "1층",
+    "주차가능",
+    "총3층"
+   ],
+   "noPremium": true,
+   "direction": "서향",
+   "confirmedAt": "20260710",
+   "realtor": "화원공인중개사사무소",
+   "cpName": "부동산써브",
+   "lat": "35.192346",
+   "lon": "126.829752",
+   "sameAddrCnt": 1,
+   "link": "https://new.land.naver.com/offices?articleNo=2637153545",
+   "mobileLink": "https://m.land.naver.com/article/info/2637153545",
+   "checks": {
+    "deposit": false,
+    "rent": false,
+    "floor": true,
+    "pyeong": false
+   },
+   "matchLevel": "low",
+   "firstSeen": "2026-07-16",
+   "isNew": false,
+   "dupCount": 1,
+   "sources": [
+    "naver"
+   ],
+   "altLinks": []
+  },
+  {
    "id": "naver:2637138111",
    "source": "naver",
    "dong": "수완동",
@@ -52422,52 +52468,6 @@
    "dupCount": 1,
    "sources": [
     "daangn"
-   ],
-   "altLinks": []
-  },
-  {
-   "id": "naver:2637153545",
-   "source": "naver",
-   "dong": "수완동",
-   "name": "일반상가",
-   "typeName": "상가점포",
-   "tradeTypeName": "월세",
-   "deposit": 3000,
-   "rent": 200,
-   "floor": 1,
-   "totalFloor": 3,
-   "floorRaw": "1/3",
-   "areaM2": 128,
-   "pyeong": 38.7,
-   "desc": "지구대건너편 메인먹자골목 내 유동인구많음 주점시설완비 권리금없음 즉시입주",
-   "tags": [
-    "15년이내",
-    "1층",
-    "주차가능",
-    "총3층"
-   ],
-   "noPremium": true,
-   "direction": "서향",
-   "confirmedAt": "20260710",
-   "realtor": "화원공인중개사사무소",
-   "cpName": "부동산써브",
-   "lat": "35.192346",
-   "lon": "126.829752",
-   "sameAddrCnt": 1,
-   "link": "https://new.land.naver.com/offices?articleNo=2637153545",
-   "mobileLink": "https://m.land.naver.com/article/info/2637153545",
-   "checks": {
-    "deposit": false,
-    "rent": false,
-    "floor": true,
-    "pyeong": false
-   },
-   "matchLevel": "low",
-   "firstSeen": "2026-07-16",
-   "isNew": false,
-   "dupCount": 1,
-   "sources": [
-    "naver"
    ],
    "altLinks": []
   },
@@ -53724,11 +53724,11 @@
     },
     {
      "source": "naver",
-     "link": "https://new.land.naver.com/offices?articleNo=2635918328"
+     "link": "https://new.land.naver.com/offices?articleNo=2635849285"
     },
     {
      "source": "naver",
-     "link": "https://new.land.naver.com/offices?articleNo=2635849285"
+     "link": "https://new.land.naver.com/offices?articleNo=2635918328"
     }
    ]
   },
@@ -54524,11 +54524,11 @@
     },
     {
      "source": "naver",
-     "link": "https://new.land.naver.com/offices?articleNo=2634408312"
+     "link": "https://new.land.naver.com/offices?articleNo=2634417598"
     },
     {
      "source": "naver",
-     "link": "https://new.land.naver.com/offices?articleNo=2634417598"
+     "link": "https://new.land.naver.com/offices?articleNo=2634408312"
     },
     {
      "source": "naver",
@@ -54809,7 +54809,7 @@
    ]
   },
   {
-   "id": "naver:2636269453",
+   "id": "naver:2636310866",
    "source": "naver",
    "dong": "하남동",
    "name": "일반상가",
@@ -54822,7 +54822,7 @@
    "floorRaw": "1/5",
    "areaM2": 61,
    "pyeong": 18.5,
-   "desc": "무권리 , 하남2지구 먹거리 상권 ,내부시설 완비 , 유동인구많음 영업가",
+   "desc": "무권리 하남2지구 대로변 상업지역 항아리상권",
    "tags": [
     "15년이내",
     "1층",
@@ -54832,13 +54832,13 @@
    "noPremium": true,
    "direction": "남향",
    "confirmedAt": "20260706",
-   "realtor": "포인트공인중개사사무소",
+   "realtor": "다온+공인중개사사무소",
    "cpName": "부동산써브",
    "lat": "35.176402",
    "lon": "126.798912",
    "sameAddrCnt": 1,
-   "link": "https://new.land.naver.com/offices?articleNo=2636269453",
-   "mobileLink": "https://m.land.naver.com/article/info/2636269453",
+   "link": "https://new.land.naver.com/offices?articleNo=2636310866",
+   "mobileLink": "https://m.land.naver.com/article/info/2636310866",
    "checks": {
     "deposit": false,
     "rent": false,
@@ -54847,7 +54847,7 @@
    },
    "matchLevel": "low",
    "firstSeen": "2026-07-19",
-   "isNew": false,
+   "isNew": true,
    "dupCount": 2,
    "sources": [
     "naver"
@@ -54855,7 +54855,7 @@
    "altLinks": [
     {
      "source": "naver",
-     "link": "https://new.land.naver.com/offices?articleNo=2636310866"
+     "link": "https://new.land.naver.com/offices?articleNo=2636269453"
     }
    ]
   },
@@ -55290,6 +55290,59 @@
    "altLinks": []
   },
   {
+   "id": "daangn:3363497",
+   "source": "daangn",
+   "dong": "수완동",
+   "name": "당근 상가",
+   "typeName": "상가",
+   "tradeTypeName": "월세",
+   "deposit": 3000,
+   "rent": 220,
+   "floor": 1,
+   "totalFloor": 3,
+   "floorRaw": "1/3",
+   "areaM2": 99.0,
+   "pyeong": 29.9,
+   "desc": "무권리 · 중개",
+   "tags": [
+    "중개"
+   ],
+   "noPremium": true,
+   "direction": null,
+   "confirmedAt": "20260626",
+   "realtor": null,
+   "cpName": "당근부동산",
+   "lat": "35.19261270658801",
+   "lon": "126.82935923816",
+   "sameAddrCnt": null,
+   "link": "https://realty.daangn.com/articles/3363497",
+   "mobileLink": "https://realty.daangn.com/articles/3363497",
+   "checks": {
+    "deposit": false,
+    "rent": false,
+    "floor": true,
+    "pyeong": false
+   },
+   "matchLevel": "low",
+   "firstSeen": "2026-07-16",
+   "isNew": false,
+   "dupCount": 3,
+   "sources": [
+    "naver",
+    "daangn"
+   ],
+   "altLinks": [
+    {
+     "source": "naver",
+     "link": "https://new.land.naver.com/offices?articleNo=2635806892"
+    },
+    {
+     "source": "naver",
+     "link": "https://new.land.naver.com/offices?articleNo=2633149304"
+    }
+   ]
+  },
+  {
    "id": "naver:2635864866",
    "source": "naver",
    "dong": "수완동",
@@ -55377,59 +55430,6 @@
     "daangn"
    ],
    "altLinks": []
-  },
-  {
-   "id": "daangn:3363497",
-   "source": "daangn",
-   "dong": "수완동",
-   "name": "당근 상가",
-   "typeName": "상가",
-   "tradeTypeName": "월세",
-   "deposit": 3000,
-   "rent": 220,
-   "floor": 1,
-   "totalFloor": 3,
-   "floorRaw": "1/3",
-   "areaM2": 99.0,
-   "pyeong": 29.9,
-   "desc": "무권리 · 중개",
-   "tags": [
-    "중개"
-   ],
-   "noPremium": true,
-   "direction": null,
-   "confirmedAt": "20260626",
-   "realtor": null,
-   "cpName": "당근부동산",
-   "lat": "35.19261270658801",
-   "lon": "126.82935923816",
-   "sameAddrCnt": null,
-   "link": "https://realty.daangn.com/articles/3363497",
-   "mobileLink": "https://realty.daangn.com/articles/3363497",
-   "checks": {
-    "deposit": false,
-    "rent": false,
-    "floor": true,
-    "pyeong": false
-   },
-   "matchLevel": "low",
-   "firstSeen": "2026-07-16",
-   "isNew": false,
-   "dupCount": 3,
-   "sources": [
-    "naver",
-    "daangn"
-   ],
-   "altLinks": [
-    {
-     "source": "naver",
-     "link": "https://new.land.naver.com/offices?articleNo=2635806892"
-    },
-    {
-     "source": "naver",
-     "link": "https://new.land.naver.com/offices?articleNo=2633149304"
-    }
-   ]
   },
   {
    "id": "naver:2635008929",
@@ -58641,6 +58641,52 @@
    "altLinks": []
   },
   {
+   "id": "naver:2638378070",
+   "source": "naver",
+   "dong": "수완동",
+   "name": "일반상가",
+   "typeName": "상가점포",
+   "tradeTypeName": "월세",
+   "deposit": 3000,
+   "rent": 240,
+   "floor": 1,
+   "totalFloor": 7,
+   "floorRaw": "1/7",
+   "areaM2": 36,
+   "pyeong": 10.9,
+   "desc": "쥬얼리 악세사라 현 성업중, 수완메인도로변 광고효과좋음",
+   "tags": [
+    "25년이내",
+    "1층",
+    "관리비10만원이하",
+    "주차가능"
+   ],
+   "noPremium": false,
+   "direction": "북향",
+   "confirmedAt": "20260716",
+   "realtor": "수완엘가공인중개사사무소",
+   "cpName": "부동산뱅크",
+   "lat": "35.190384",
+   "lon": "126.825323",
+   "sameAddrCnt": 1,
+   "link": "https://new.land.naver.com/offices?articleNo=2638378070",
+   "mobileLink": "https://m.land.naver.com/article/info/2638378070",
+   "checks": {
+    "deposit": false,
+    "rent": false,
+    "floor": true,
+    "pyeong": false
+   },
+   "matchLevel": "low",
+   "firstSeen": "2026-07-16",
+   "isNew": false,
+   "dupCount": 1,
+   "sources": [
+    "naver"
+   ],
+   "altLinks": []
+  },
+  {
    "id": "naver:2638378155",
    "source": "naver",
    "dong": "수완동",
@@ -58706,52 +58752,6 @@
      "link": "https://new.land.naver.com/offices?articleNo=2634411632"
     }
    ]
-  },
-  {
-   "id": "naver:2638378070",
-   "source": "naver",
-   "dong": "수완동",
-   "name": "일반상가",
-   "typeName": "상가점포",
-   "tradeTypeName": "월세",
-   "deposit": 3000,
-   "rent": 240,
-   "floor": 1,
-   "totalFloor": 7,
-   "floorRaw": "1/7",
-   "areaM2": 36,
-   "pyeong": 10.9,
-   "desc": "쥬얼리 악세사라 현 성업중, 수완메인도로변 광고효과좋음",
-   "tags": [
-    "25년이내",
-    "1층",
-    "관리비10만원이하",
-    "주차가능"
-   ],
-   "noPremium": false,
-   "direction": "북향",
-   "confirmedAt": "20260716",
-   "realtor": "수완엘가공인중개사사무소",
-   "cpName": "부동산뱅크",
-   "lat": "35.190384",
-   "lon": "126.825323",
-   "sameAddrCnt": 1,
-   "link": "https://new.land.naver.com/offices?articleNo=2638378070",
-   "mobileLink": "https://m.land.naver.com/article/info/2638378070",
-   "checks": {
-    "deposit": false,
-    "rent": false,
-    "floor": true,
-    "pyeong": false
-   },
-   "matchLevel": "low",
-   "firstSeen": "2026-07-16",
-   "isNew": false,
-   "dupCount": 1,
-   "sources": [
-    "naver"
-   ],
-   "altLinks": []
   },
   {
    "id": "daangn:2894549",
@@ -59584,52 +59584,6 @@
    "altLinks": []
   },
   {
-   "id": "naver:2638177378",
-   "source": "naver",
-   "dong": "하남동",
-   "name": "일반상가",
-   "typeName": "상가점포",
-   "tradeTypeName": "월세",
-   "deposit": 3000,
-   "rent": 250,
-   "floor": 8,
-   "totalFloor": 9,
-   "floorRaw": "8/9",
-   "areaM2": 220,
-   "pyeong": 66.5,
-   "desc": "하남동 홈플러스인근 큰대로변으로 입지조건 매우 좋음.",
-   "tags": [
-    "4년이내",
-    "고층",
-    "주차가능",
-    "남동향"
-   ],
-   "noPremium": false,
-   "direction": "남동향",
-   "confirmedAt": "20260715",
-   "realtor": "굿모닝공인중개사사무소",
-   "cpName": "한국공인중개사협회",
-   "lat": "0",
-   "lon": "0",
-   "sameAddrCnt": 3,
-   "link": "https://new.land.naver.com/offices?articleNo=2638177378",
-   "mobileLink": "https://m.land.naver.com/article/info/2638177378",
-   "checks": {
-    "deposit": false,
-    "rent": false,
-    "floor": false,
-    "pyeong": false
-   },
-   "matchLevel": "low",
-   "firstSeen": "2026-07-16",
-   "isNew": false,
-   "dupCount": 1,
-   "sources": [
-    "naver"
-   ],
-   "altLinks": []
-  },
-  {
    "id": "naver:2638177259",
    "source": "naver",
    "dong": "하남동",
@@ -59660,6 +59614,52 @@
    "sameAddrCnt": 3,
    "link": "https://new.land.naver.com/offices?articleNo=2638177259",
    "mobileLink": "https://m.land.naver.com/article/info/2638177259",
+   "checks": {
+    "deposit": false,
+    "rent": false,
+    "floor": false,
+    "pyeong": false
+   },
+   "matchLevel": "low",
+   "firstSeen": "2026-07-16",
+   "isNew": false,
+   "dupCount": 1,
+   "sources": [
+    "naver"
+   ],
+   "altLinks": []
+  },
+  {
+   "id": "naver:2638177378",
+   "source": "naver",
+   "dong": "하남동",
+   "name": "일반상가",
+   "typeName": "상가점포",
+   "tradeTypeName": "월세",
+   "deposit": 3000,
+   "rent": 250,
+   "floor": 8,
+   "totalFloor": 9,
+   "floorRaw": "8/9",
+   "areaM2": 220,
+   "pyeong": 66.5,
+   "desc": "하남동 홈플러스인근 큰대로변으로 입지조건 매우 좋음.",
+   "tags": [
+    "4년이내",
+    "고층",
+    "주차가능",
+    "남동향"
+   ],
+   "noPremium": false,
+   "direction": "남동향",
+   "confirmedAt": "20260715",
+   "realtor": "굿모닝공인중개사사무소",
+   "cpName": "한국공인중개사협회",
+   "lat": "0",
+   "lon": "0",
+   "sameAddrCnt": 3,
+   "link": "https://new.land.naver.com/offices?articleNo=2638177378",
+   "mobileLink": "https://m.land.naver.com/article/info/2638177378",
    "checks": {
     "deposit": false,
     "rent": false,
@@ -63404,11 +63404,11 @@
     },
     {
      "source": "naver",
-     "link": "https://new.land.naver.com/offices?articleNo=2636299432"
+     "link": "https://new.land.naver.com/offices?articleNo=2636275910"
     },
     {
      "source": "naver",
-     "link": "https://new.land.naver.com/offices?articleNo=2636275910"
+     "link": "https://new.land.naver.com/offices?articleNo=2636299432"
     },
     {
      "source": "naver",
@@ -65818,52 +65818,6 @@
    "altLinks": []
   },
   {
-   "id": "naver:2638586055",
-   "source": "naver",
-   "dong": "신창동",
-   "name": "일반상가",
-   "typeName": "상가점포",
-   "tradeTypeName": "월세",
-   "deposit": 5000,
-   "rent": 300,
-   "floor": 1,
-   "totalFloor": 4,
-   "floorRaw": "1/4",
-   "areaM2": 115,
-   "pyeong": 34.8,
-   "desc": "대로변입지좋음 시.권없음 부가세별도",
-   "tags": [
-    "25년이내",
-    "1층",
-    "주차가능",
-    "엘리베이터"
-   ],
-   "noPremium": false,
-   "direction": "서향",
-   "confirmedAt": "20260718",
-   "realtor": "크로바공인중개사사무소",
-   "cpName": "부동산뱅크",
-   "lat": "35.192643",
-   "lon": "126.837481",
-   "sameAddrCnt": 1,
-   "link": "https://new.land.naver.com/offices?articleNo=2638586055",
-   "mobileLink": "https://m.land.naver.com/article/info/2638586055",
-   "checks": {
-    "deposit": false,
-    "rent": false,
-    "floor": true,
-    "pyeong": false
-   },
-   "matchLevel": "low",
-   "firstSeen": "2026-07-19",
-   "isNew": false,
-   "dupCount": 1,
-   "sources": [
-    "naver"
-   ],
-   "altLinks": []
-  },
-  {
    "id": "naver:2638699605",
    "source": "naver",
    "dong": "신창동",
@@ -65894,6 +65848,52 @@
    "sameAddrCnt": 1,
    "link": "https://new.land.naver.com/offices?articleNo=2638699605",
    "mobileLink": "https://m.land.naver.com/article/info/2638699605",
+   "checks": {
+    "deposit": false,
+    "rent": false,
+    "floor": true,
+    "pyeong": false
+   },
+   "matchLevel": "low",
+   "firstSeen": "2026-07-19",
+   "isNew": false,
+   "dupCount": 1,
+   "sources": [
+    "naver"
+   ],
+   "altLinks": []
+  },
+  {
+   "id": "naver:2638586055",
+   "source": "naver",
+   "dong": "신창동",
+   "name": "일반상가",
+   "typeName": "상가점포",
+   "tradeTypeName": "월세",
+   "deposit": 5000,
+   "rent": 300,
+   "floor": 1,
+   "totalFloor": 4,
+   "floorRaw": "1/4",
+   "areaM2": 115,
+   "pyeong": 34.8,
+   "desc": "대로변입지좋음 시.권없음 부가세별도",
+   "tags": [
+    "25년이내",
+    "1층",
+    "주차가능",
+    "엘리베이터"
+   ],
+   "noPremium": false,
+   "direction": "서향",
+   "confirmedAt": "20260718",
+   "realtor": "크로바공인중개사사무소",
+   "cpName": "부동산뱅크",
+   "lat": "35.192643",
+   "lon": "126.837481",
+   "sameAddrCnt": 1,
+   "link": "https://new.land.naver.com/offices?articleNo=2638586055",
+   "mobileLink": "https://m.land.naver.com/article/info/2638586055",
    "checks": {
     "deposit": false,
     "rent": false,
@@ -68230,11 +68230,11 @@
    "altLinks": [
     {
      "source": "naver",
-     "link": "https://new.land.naver.com/offices?articleNo=2637646589"
+     "link": "https://new.land.naver.com/offices?articleNo=2637597705"
     },
     {
      "source": "naver",
-     "link": "https://new.land.naver.com/offices?articleNo=2637597705"
+     "link": "https://new.land.naver.com/offices?articleNo=2637646589"
     },
     {
      "source": "naver",
@@ -68729,11 +68729,11 @@
     },
     {
      "source": "naver",
-     "link": "https://new.land.naver.com/offices?articleNo=2635744057"
+     "link": "https://new.land.naver.com/offices?articleNo=2635746720"
     },
     {
      "source": "naver",
-     "link": "https://new.land.naver.com/offices?articleNo=2635746720"
+     "link": "https://new.land.naver.com/offices?articleNo=2635744057"
     }
    ]
   },
@@ -75007,6 +75007,52 @@
    "altLinks": []
   },
   {
+   "id": "naver:2636972420",
+   "source": "naver",
+   "dong": "하남동",
+   "name": "일반상가",
+   "typeName": "상가점포",
+   "tradeTypeName": "월세",
+   "deposit": null,
+   "rent": 500,
+   "floor": 2,
+   "totalFloor": 5,
+   "floorRaw": "2/5",
+   "areaM2": 456,
+   "pyeong": 137.9,
+   "desc": "l 최多매물 l 휘트니스 헬스장 운동시설 추천 l 대형상가 l 광산세무서",
+   "tags": [
+    "15년이내",
+    "융자금적은",
+    "중층",
+    "주차가능"
+   ],
+   "noPremium": false,
+   "direction": "북향",
+   "confirmedAt": "20260709",
+   "realtor": "에덴공인중개사사무소",
+   "cpName": "매경부동산",
+   "lat": "35.179933",
+   "lon": "126.803052",
+   "sameAddrCnt": 2,
+   "link": "https://new.land.naver.com/offices?articleNo=2636972420",
+   "mobileLink": "https://m.land.naver.com/article/info/2636972420",
+   "checks": {
+    "deposit": false,
+    "rent": false,
+    "floor": false,
+    "pyeong": false
+   },
+   "matchLevel": "low",
+   "firstSeen": "2026-07-16",
+   "isNew": false,
+   "dupCount": 1,
+   "sources": [
+    "naver"
+   ],
+   "altLinks": []
+  },
+  {
    "id": "naver:2638399054",
    "source": "naver",
    "dong": "하남동",
@@ -75068,52 +75114,6 @@
      "link": "https://new.land.naver.com/offices?articleNo=2637518363"
     }
    ]
-  },
-  {
-   "id": "naver:2636972420",
-   "source": "naver",
-   "dong": "하남동",
-   "name": "일반상가",
-   "typeName": "상가점포",
-   "tradeTypeName": "월세",
-   "deposit": null,
-   "rent": 500,
-   "floor": 2,
-   "totalFloor": 5,
-   "floorRaw": "2/5",
-   "areaM2": 456,
-   "pyeong": 137.9,
-   "desc": "l 최多매물 l 휘트니스 헬스장 운동시설 추천 l 대형상가 l 광산세무서",
-   "tags": [
-    "15년이내",
-    "융자금적은",
-    "중층",
-    "주차가능"
-   ],
-   "noPremium": false,
-   "direction": "북향",
-   "confirmedAt": "20260709",
-   "realtor": "에덴공인중개사사무소",
-   "cpName": "매경부동산",
-   "lat": "35.179933",
-   "lon": "126.803052",
-   "sameAddrCnt": 2,
-   "link": "https://new.land.naver.com/offices?articleNo=2636972420",
-   "mobileLink": "https://m.land.naver.com/article/info/2636972420",
-   "checks": {
-    "deposit": false,
-    "rent": false,
-    "floor": false,
-    "pyeong": false
-   },
-   "matchLevel": "low",
-   "firstSeen": "2026-07-16",
-   "isNew": false,
-   "dupCount": 1,
-   "sources": [
-    "naver"
-   ],
-   "altLinks": []
   },
   {
    "id": "naver:2635339291",
