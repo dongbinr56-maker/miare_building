@@ -1,10 +1,11 @@
 name: Collect listings
 
 on:
-  schedule:
-    # KST 07:00 / 18:00 (UTC 22:00 / 09:00)
-    - cron: '0 22 * * *'
-    - cron: '0 9 * * *'
+  # 스케줄 제거: 네이버가 부동산 호스트(new.land/m.land/fin.land)를 해외 데이터센터
+  # IP에서 네트워크 레벨로 차단해 러너에서는 접속 자체가 불가능하다 (2026-07-19 진단:
+  # www.naver.com은 200, new.land는 TCP 타임아웃). 정기 수집은 로컬 작업 스케줄러
+  # "MiareCollect"(07:10/18:10 KST, collect_and_push.bat)가 담당한다.
+  # 아래 수동 트리거는 참고용으로만 남긴다 (한국 IP 러너/프록시 확보 전까지는 실패함).
   workflow_dispatch:
 
 permissions:

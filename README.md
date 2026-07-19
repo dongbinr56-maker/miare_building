@@ -28,8 +28,9 @@
 │    └→ web/public/data/listings.json
 ├─ web/                     React + Vite + Tailwind 대시보드
 │    └→ GitHub Pages 배포
+├─ collect_and_push.bat     수집 → 커밋 → 푸시 (작업 스케줄러 "MiareCollect"가 07:10/18:10 실행)
 └─ .github/workflows/
-     ├─ collect.yml         매일 07시/18시(KST) 자동 수집 → 데이터 커밋
+     ├─ collect.yml         수동 실행 전용 (네이버가 Actions IP 차단 → 스케줄 폐기, 아래 참고)
      └─ deploy.yml          main 푸시 시 Pages 빌드·배포
 ```
 
@@ -74,8 +75,19 @@ cd web && npm install && npm run dev
 2. main에 푸시하면 자동 배포: `https://<계정>.github.io/miare_building/`
 3. 무료 플랜은 **공개 저장소만 Pages 지원** — 민감 문서는 `docs/`에 두면 커밋에서 제외됨(.gitignore)
 
-> GitHub Actions IP가 네이버에 차단될 경우 `collect.yml` 스케줄 수집이 실패할 수 있다.
-> 그 경우 로컬에서 `collect_and_push.bat`을 주기 실행(작업 스케줄러)하는 방식으로 대체.
+> **자동 수집은 로컬 PC가 담당한다.** 네이버가 부동산 호스트(new.land/m.land/fin.land)를
+> 해외 데이터센터 IP에서 네트워크 레벨로 차단해 GitHub Actions에서는 접속이 불가능함을
+> 확인했다(2026-07-19 러너 진단: www.naver.com 200, new.land TCP 타임아웃). 작업 스케줄러
+> 작업 **MiareCollect**가 매일 07:10/18:10(KST)에 `collect_and_push.bat`을 실행하며,
+> 트리거 시각에 PC가 꺼져 있었으면 다음 부팅 후 실행된다. 새 PC에서 재등록:
+>
+> ```powershell
+> $repo = "이 저장소의 절대경로"
+> Register-ScheduledTask -TaskName "MiareCollect" -Force `
+>   -Action (New-ScheduledTaskAction -Execute "cmd.exe" -Argument "/c `"$repo\collect_and_push.bat`"" -WorkingDirectory $repo) `
+>   -Trigger (New-ScheduledTaskTrigger -Daily -At 07:10), (New-ScheduledTaskTrigger -Daily -At 18:10) `
+>   -Settings (New-ScheduledTaskSettingsSet -StartWhenAvailable -AllowStartIfOnBatteries -DontStopIfGoingOnBatteries -ExecutionTimeLimit (New-TimeSpan -Minutes 30))
+> ```
 
 ## 주의
 
