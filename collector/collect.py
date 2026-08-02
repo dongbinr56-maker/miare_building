@@ -14,6 +14,7 @@
 
 실행: python collector/collect.py  (저장소 루트 기준 상대경로 처리됨)
 """
+import copy
 import json
 import os
 import random
@@ -342,6 +343,74 @@ def normalize(raw, dong, criteria):
     }
 
 
+def previous_regions(previous_data):
+    """직전 검증 스냅샷에서 광산구 법정동 목록을 복원한다."""
+    result = []
+    seen = set()
+    raw_regions = (previous_data or {}).get("regions")
+    if not isinstance(raw_regions, list):
+        return result
+    for raw in raw_regions:
+        if not isinstance(raw, dict):
+            continue
+        name = str(raw.get("name") or "").strip()
+        cortar_no = str(raw.get("cortarNo") or "").strip()
+        if not name or not re.fullmatch(r"\d{10}", cortar_no) or cortar_no in seen:
+            continue
+        seen.add(cortar_no)
+        result.append({"name": name, "cortarNo": cortar_no, "count": 0})
+    return result
+
+
+def retained_naver_listings(previous_data):
+    """직전 병합 카드에서 네이버 정체성만 분리해 안전하게 유지한다."""
+    retained = []
+    raw_listings = (previous_data or {}).get("listings")
+    if not isinstance(raw_listings, list):
+        return retained
+    for raw in raw_listings:
+        if not isinstance(raw, dict):
+            continue
+        candidates = [raw.get("id")]
+        if isinstance(raw.get("mergedListingIds"), list):
+            candidates.extend(raw["mergedListingIds"])
+        naver_ids = list(dict.fromkeys(
+            value for value in candidates
+            if isinstance(value, str) and re.fullmatch(r"naver:\d+", value)
+        ))
+        if not naver_ids:
+            continue
+        item = copy.deepcopy(raw)
+        primary_id = raw.get("id") if raw.get("id") in naver_ids else naver_ids[0]
+        alternate_links = raw.get("altLinks") if isinstance(raw.get("altLinks"), list) else []
+        naver_link = raw.get("link") if raw.get("source") == "naver" else next(
+            (
+                link.get("link")
+                for link in alternate_links
+                if isinstance(link, dict)
+                and link.get("source") == "naver"
+                and isinstance(link.get("link"), str)
+            ),
+            None,
+        )
+        article_no = primary_id.split(":", 1)[1]
+        item.update({
+            "id": primary_id,
+            "source": "naver",
+            "sources": ["naver"],
+            "mergedListingIds": naver_ids,
+            "dupCount": len(naver_ids),
+            "link": naver_link or f"https://new.land.naver.com/offices?articleNo={article_no}",
+            "mobileLink": f"https://m.land.naver.com/article/info/{article_no}",
+            "altLinks": [
+                link for link in alternate_links
+                if isinstance(link, dict) and link.get("source") == "naver"
+            ][:6],
+        })
+        retained.append(item)
+    return retained
+
+
 def main():
     cfg = load_config()
     out_path = os.path.join(ROOT, cfg["output"])
@@ -379,75 +448,98 @@ def main():
             log(f"이전 데이터 로드 실패(무시): {e!r}")
 
     today = datetime.now(KST).strftime("%Y-%m-%d")
+    listings = []
+    seen_ids = set()
+    regions = []
+    region_counts = []
+    provider_status = {}
+    fresh_provider_count = 0
+    naver_failure = None
+    naver_mode = os.environ.get("NAVER_COLLECTION_MODE", "auto").strip().lower()
 
-    with sync_playwright() as p:
-        browser = None
+    if naver_mode == "retain_previous":
+        naver_failure = "GitHub 데이터센터에서 네이버 연결이 차단되어 직전 검증본 유지 모드"
+    else:
         try:
-            browser, ctx, page = launch_naver_browser(p)
+            with sync_playwright() as p:
+                browser = None
+                try:
+                    browser, ctx, page = launch_naver_browser(p)
+                    token_box = {"v": None}
 
-            token_box = {"v": None}
+                    def on_request(req):
+                        if token_box["v"] is None and "new.land.naver.com/api/" in req.url:
+                            auth = req.headers.get("authorization")
+                            if auth and auth.startswith("Bearer "):
+                                token_box["v"] = auth
 
-            def on_request(req):
-                if token_box["v"] is None and "new.land.naver.com/api/" in req.url:
-                    auth = req.headers.get("authorization")
-                    if auth and auth.startswith("Bearer "):
-                        token_box["v"] = auth
+                    page.on("request", on_request)
+                    log("네이버 부동산 페이지 로드 중...")
+                    page.goto(ENTRY_URL, wait_until="domcontentloaded", timeout=60000)
+                    for _ in range(40):
+                        if token_box["v"]:
+                            break
+                        page.wait_for_timeout(500)
+                    if not token_box["v"]:
+                        raise RuntimeError("네이버 API 토큰 캡처 실패")
+                    log("토큰 캡처 완료")
 
-            page.on("request", on_request)
-            log("네이버 부동산 페이지 로드 중...")
-            page.goto(ENTRY_URL, wait_until="domcontentloaded", timeout=60000)
-            for _ in range(40):
-                if token_box["v"]:
-                    break
-                page.wait_for_timeout(500)
-            if not token_box["v"]:
-                log("토큰 캡처 실패 - 종료")
-                sys.exit(1)
-            log("토큰 캡처 완료")
+                    sess = NaverLandSession(page, token_box["v"])
+                    regions = discover_child_regions(sess, cfg["regionCortarNo"])
+                    if not regions:
+                        raise RuntimeError("광산구 하위 법정동 목록 조회 실패")
+                    log(f"광산구 전체 지역 해석: {len(regions)}개 법정동")
 
-            sess = NaverLandSession(page, token_box["v"])
+                    for region in regions:
+                        count = 0
+                        for ret in cfg["realEstateTypes"]:
+                            raws = fetch_region_articles(
+                                sess, region["cortarNo"], ret,
+                                cfg["tradeType"], cfg["maxPagesPerRegion"],
+                            )
+                            for raw in raws:
+                                item = normalize(raw, region["name"], criteria)
+                                if item["id"] in seen_ids:
+                                    continue
+                                seen_ids.add(item["id"])
+                                item["firstSeen"] = prev_first_seen.get(item["id"], today)
+                                item["isNew"] = bool(prev_first_seen) and item["id"] not in prev_first_seen
+                                listings.append(item)
+                                count += 1
+                            sess.sleep()
+                        region_counts.append({
+                            "name": region["name"],
+                            "cortarNo": region["cortarNo"],
+                            "count": count,
+                        })
+                        log(f"{region['name']}: {count}건 (네이버)")
+                finally:
+                    if browser is not None:
+                        browser.close()
+            fresh_provider_count += 1
+            provider_status["naver"] = {"status": "fresh", "count": len(listings)}
+        except (PlaywrightError, RuntimeError) as error:
+            naver_failure = str(error).splitlines()[0][:240]
 
-            # 1) 광산구 하위 법정동 전체를 동적으로 조회한다.
-            regions = discover_child_regions(sess, cfg["regionCortarNo"])
-
-            if not regions:
-                log("광산구 하위 법정동 목록 조회 실패 - 기존 데이터를 보존하고 종료")
-                sys.exit(1)
-            log(f"광산구 전체 지역 해석: {len(regions)}개 법정동")
-            for region in regions:
-                log(f"  {region['name']} -> {region['cortarNo']}")
-
-            # 2) 동별 매물 수집
-            listings = []
-            seen_ids = set()
-            region_counts = []
-            for r in regions:
-                count = 0
-                for ret in cfg["realEstateTypes"]:
-                    raws = fetch_region_articles(sess, r["cortarNo"], ret,
-                                                 cfg["tradeType"], cfg["maxPagesPerRegion"])
-                    for raw in raws:
-                        item = normalize(raw, r["name"], criteria)
-                        if item["id"] in seen_ids:
-                            continue
-                        seen_ids.add(item["id"])
-                        item["firstSeen"] = prev_first_seen.get(item["id"], today)
-                        # 신규 = 직전 수집 데이터에 없던 매물 (첫 수집 시에는 전부 기준선이므로 신규 아님)
-                        item["isNew"] = bool(prev_first_seen) and item["id"] not in prev_first_seen
-                        listings.append(item)
-                        count += 1
-                    sess.sleep()
-                region_counts.append({"name": r["name"], "cortarNo": r["cortarNo"], "count": count})
-                log(f"{r['name']}: {count}건 (네이버)")
-        finally:
-            # Browser Run continues consuming the daily allowance until the
-            # session closes, so close even on token/API/collector failures.
-            if browser is not None:
-                browser.close()
+    if naver_failure:
+        regions = previous_regions(previous_data)
+        listings = retained_naver_listings(previous_data)
+        seen_ids = {item["id"] for item in listings}
+        region_counts = [dict(region) for region in regions]
+        if not regions or not listings:
+            log(f"네이버 수집 실패 후 복원할 검증 데이터가 없습니다: {naver_failure}")
+            sys.exit(1)
+        provider_status["naver"] = {
+            "status": "retained",
+            "count": len(listings),
+            "reason": naver_failure,
+        }
+        log(f"네이버 {len(listings)}건은 직전 검증 스냅샷 유지: {naver_failure}")
 
     # 3) 당근 부동산 수집 (순수 HTTP, 브라우저 불필요)
     if cfg.get("daangn", {}).get("enabled", True):
         try:
+            daangn_count = 0
             for item in collect_daangn(cfg, criteria, regions, log):
                 if item["id"] in seen_ids:
                     continue
@@ -455,11 +547,15 @@ def main():
                 item["firstSeen"] = prev_first_seen.get(item["id"], today)
                 item["isNew"] = bool(prev_first_seen) and item["id"] not in prev_first_seen
                 listings.append(item)
-        except Exception as e:
-            log(f"당근 수집 전체 실패(네이버 데이터만 저장): {e!r}")
+                daangn_count += 1
+            fresh_provider_count += 1
+            provider_status["daangn"] = {"status": "fresh", "count": daangn_count}
+        except Exception as error:
+            log(f"당근 수집 전체 실패(네이버 데이터만 저장): {error!r}")
+            provider_status["daangn"] = {"status": "failed", "count": 0}
 
-    if not listings and prev_first_seen:
-        log("수집 결과 0건 + 이전 데이터 존재 -> 기존 파일 유지, 실패로 종료")
+    if fresh_provider_count == 0:
+        log("새로 수집된 공급자가 없어 기존 파일을 보존하고 실패로 종료")
         sys.exit(1)
 
     # 중복 병합 (가격·평·층 동일 + 좌표 근접)
@@ -559,6 +655,7 @@ def main():
             "excludedByCriteria": deduped_count - len(full_candidates),
             "premiumAudit": premium_audit,
             "nearby": nearby_stats,
+            "providers": provider_status,
         },
         "changeHistory": change_history,
         "listings": listings,

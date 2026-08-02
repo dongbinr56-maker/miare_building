@@ -630,6 +630,14 @@ def _collection_failure_detail(returncode: int) -> str:
     return f"수집기 종료 코드 {returncode}. GitHub Actions 로그를 확인해 주세요."
 
 
+def _refresh_success_message(payload: dict[str, Any]) -> str:
+    providers = payload.get("stats", {}).get("providers", {})
+    naver = providers.get("naver") if isinstance(providers, dict) else None
+    if isinstance(naver, dict) and naver.get("status") == "retained":
+        return "당근 매물은 갱신했고, 네이버 매물은 직전 검증 데이터를 유지했습니다."
+    return "최신 매물 데이터로 갱신했습니다."
+
+
 def _seed_previous_listings(kv: KvClient) -> None:
     """Restore the private previous snapshot for firstSeen/isNew comparison.
 
@@ -715,6 +723,7 @@ def process_once(kv: KvClient, expected_job_id: str | None = None) -> bool:
     try:
         raw = LISTINGS_PATH.read_bytes()
         updated_at = _validate_listings(raw)
+        published_payload = json.loads(raw)
         nearby_cache_raw = _nearby_cache_for_upload(previous_nearby_fetched_at)
         previous = kv.get_json(META_KEY, missing_ok=True)
         if previous:
@@ -739,7 +748,7 @@ def process_once(kv: KvClient, expected_job_id: str | None = None) -> bool:
                 "status": "succeeded",
                 "completedAt": completed_at,
                 "updatedAt": updated_at,
-                "message": "최신 매물 데이터로 갱신했습니다.",
+                "message": _refresh_success_message(published_payload),
             },
         )
         print(f"[{completed_at}] 새로고침 완료: {updated_at}", flush=True)

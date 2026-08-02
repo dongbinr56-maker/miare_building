@@ -166,6 +166,17 @@ class RefreshAgentTests(unittest.TestCase):
             with patch.object(refresh_agent, "LOG_PATH", log_path):
                 self.assertIn("종료 코드 7", refresh_agent._collection_failure_detail(7))
 
+    def test_refresh_success_message_discloses_retained_naver_data(self):
+        payload = {
+            "stats": {
+                "providers": {
+                    "naver": {"status": "retained"},
+                    "daangn": {"status": "fresh"},
+                },
+            },
+        }
+        self.assertIn("직전 검증", refresh_agent._refresh_success_message(payload))
+
     def test_idle_state_does_not_collect(self):
         kv = FakeKv()
         with patch.object(refresh_agent, "_run_collection") as collect:

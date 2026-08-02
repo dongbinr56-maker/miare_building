@@ -65,9 +65,6 @@ jobs:
       - name: Install collector dependencies
         run: python -m pip install --disable-pip-version-check -r collector/requirements.txt
 
-      - name: Install local Chromium for collection
-        run: python -m playwright install --with-deps chromium
-
       - name: Install Wrangler
         working-directory: web
         run: npm ci --ignore-scripts
@@ -102,6 +99,9 @@ jobs:
         env:
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          # GitHub 데이터센터 IP는 new.land.naver.com에서 reset되므로 직전
+          # 엄격 검증본을 유지하고 당근·생활권 데이터는 클라우드에서 갱신한다.
+          NAVER_COLLECTION_MODE: retain_previous
         run: python refresh_agent.py --once --job-id "$REFRESH_JOB_ID"
 
       - name: Show collector summary
