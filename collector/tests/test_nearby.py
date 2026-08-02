@@ -2,6 +2,7 @@
 """생활권 필터의 거리·근거·캐시·fail-closed 회귀 테스트."""
 
 import json
+import math
 import sys
 import tempfile
 import unittest
@@ -13,6 +14,7 @@ COLLECTOR_DIR = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(COLLECTOR_DIR))
 
 from nearby import (  # noqa: E402
+    NEARBY_RADIUS_M,
     _split_bbox,
     filter_by_nearby_facilities,
     prefetch_nearby_facilities,
@@ -38,8 +40,9 @@ class NearbyFacilityTests(unittest.TestCase):
         self.cache_path = str(Path(self.temp_dir.name) / "nearby.json")
         self.settings = {
             "enabled": True,
-            "nearbyRadiusM": 800,
+            "nearbyRadiusM": NEARBY_RADIUS_M,
             "cachePath": self.cache_path,
+            "cacheTtlHours": 24,
             "overpassEndpoints": ["https://example.test/overpass"],
             "requestsPerEndpoint": 1,
             "overpassTileDelaySeconds": 0,
@@ -80,7 +83,9 @@ class NearbyFacilityTests(unittest.TestCase):
         self.assertNotIn('building"="apartments', calls[0][1])
         self.assertIn(".boundary_features out body geom", calls[0][1])
         self.assertEqual(kept[0]["nearbyFacilities"][0]["kind"], "elementary_school")
-        self.assertLessEqual(kept[0]["nearbyFacilities"][0]["distanceM"], 800)
+        self.assertLessEqual(
+            kept[0]["nearbyFacilities"][0]["distanceM"], NEARBY_RADIUS_M
+        )
         self.assertEqual(kept[0]["nearbyFacilities"][0]["source"], "openstreetmap")
         self.assertEqual(kept[0]["nearbyFacilities"][0]["tags"], {"amenity": "school"})
         self.assertEqual(
@@ -106,6 +111,10 @@ class NearbyFacilityTests(unittest.TestCase):
         self.assertEqual(stats["dataStatus"], "network")
         self.assertEqual(stats["facilityCount"], 1)
         self.assertEqual(len(calls), 1)
+        self.assertLess(stats["coverageBbox"][0], settings["prefetchBbox"][0])
+        self.assertLess(stats["coverageBbox"][1], settings["prefetchBbox"][1])
+        self.assertGreater(stats["coverageBbox"][2], settings["prefetchBbox"][2])
+        self.assertGreater(stats["coverageBbox"][3], settings["prefetchBbox"][3])
 
         kept, filter_stats = filter_by_nearby_facilities(
             [listing()],
@@ -126,13 +135,20 @@ class NearbyFacilityTests(unittest.TestCase):
         self.assertEqual(stats["excludedNoFacility"], 1)
 
     def test_boundary_is_inclusive(self):
-        # 같은 경도에서 약 800m 북쪽. 반올림 오차를 피하려 799m 지점을 사용한다.
-        school = node(30, 35.1800 + 799 / 111_195, 126.8200,
-                      amenity="school", name="경계고등학교")
+        # 같은 경도에서 haversine 기준 정확히 500m와 500m 초과 지점을 함께 검증한다.
+        boundary_lat = 35.1800 + math.degrees(NEARBY_RADIUS_M / 6_371_000.0)
+        outside_lat = 35.1800 + math.degrees((NEARBY_RADIUS_M + 0.01) / 6_371_000.0)
+        payload = {"elements": [
+            node(30, boundary_lat, 126.8200, amenity="school", name="경계고등학교"),
+            node(31, outside_lat, 126.8200, amenity="university", name="경계밖대학교"),
+        ]}
         kept, _ = filter_by_nearby_facilities(
-            [listing()], self.settings, fetcher=lambda *_: {"elements": [school]}, now=NOW
+            [listing()], self.settings, fetcher=lambda *_: payload, now=NOW
         )
         self.assertEqual(len(kept), 1)
+        self.assertEqual(len(kept[0]["nearbyFacilities"]), 1)
+        self.assertEqual(kept[0]["nearbyFacilities"][0]["osmId"], 30)
+        self.assertEqual(kept[0]["nearbyFacilities"][0]["distanceM"], 500)
 
     def test_apartment_polygon_uses_boundary_distance(self):
         apartment = {
@@ -350,10 +366,29 @@ class NearbyFacilityTests(unittest.TestCase):
             raise AssertionError("fresh cache should avoid network")
 
         second, stats = filter_by_nearby_facilities(
-            [listing()], self.settings, fetcher=should_not_run, now=NOW + timedelta(hours=1)
+            [listing()], self.settings, fetcher=should_not_run, now=NOW + timedelta(hours=23)
         )
         self.assertEqual(len(second), 1)
         self.assertEqual(stats["dataStatus"], "cache")
+
+    def test_cache_refreshes_after_24_hours(self):
+        school = node(51, 35.1810, 126.8200, amenity="school", name="일일캐시초등학교")
+        filter_by_nearby_facilities(
+            [listing()], self.settings, fetcher=lambda *_: {"elements": [school]}, now=NOW
+        )
+        calls = []
+
+        def fetcher(*_args):
+            calls.append(True)
+            return {"elements": [school]}
+
+        kept, stats = filter_by_nearby_facilities(
+            [listing()], self.settings, fetcher=fetcher,
+            now=NOW + timedelta(hours=24, seconds=1),
+        )
+        self.assertEqual(len(kept), 1)
+        self.assertEqual(stats["dataStatus"], "network")
+        self.assertEqual(len(calls), 1)
 
     def test_stale_covering_cache_is_fallback_after_api_failure(self):
         school = node(60, 35.1810, 126.8200, amenity="school", name="오래된중학교")
@@ -382,8 +417,8 @@ class NearbyFacilityTests(unittest.TestCase):
         self.assertIn("광산대학교", cache_text)
         self.assertEqual(json.loads(cache_text)["schemaVersion"], 2)
 
-    def test_radius_must_be_between_500_and_800(self):
-        for radius in (499, 801):
+    def test_radius_must_be_500(self):
+        for radius in (499, 501, 800):
             with self.subTest(radius=radius):
                 with self.assertRaises(ValueError):
                     filter_by_nearby_facilities([], {**self.settings, "nearbyRadiusM": radius})

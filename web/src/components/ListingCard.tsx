@@ -1,4 +1,7 @@
 import type { Listing, Source } from '../types'
+import type { ListingNoteRecord } from '../listingNotesStore'
+import type { ListingNoteSyncStatus } from '../useListingNotes'
+import { ListingNoteEditor } from './ListingNoteEditor'
 import SpotlightCard from './reactbits/SpotlightCard'
 
 function fmtMan(v: number | null): string {
@@ -66,6 +69,11 @@ export function ListingCard({
   onToggleFav,
   onOpenMap,
   onHide,
+  note,
+  notesReady,
+  noteSyncStatus,
+  onSaveNote,
+  onDeleteNote,
 }: {
   item: Listing
   i: number
@@ -73,6 +81,11 @@ export function ListingCard({
   onToggleFav: (item: Listing) => void
   onOpenMap: (item: Listing) => void
   onHide: (item: Listing) => void
+  note: ListingNoteRecord | null
+  notesReady: boolean
+  noteSyncStatus: ListingNoteSyncStatus
+  onSaveNote: (item: Listing, text: string) => void
+  onDeleteNote: (item: Listing) => void
 }) {
   const badge = LEVEL_BADGE[item.matchLevel]
   const cardCls =
@@ -174,6 +187,14 @@ export function ListingCard({
 
       {/* 설명 */}
       {item.desc && <p className="clamp-2 text-[13px] leading-relaxed text-dim">{item.desc}</p>}
+
+      <ListingNoteEditor
+        note={note}
+        ready={notesReady}
+        syncStatus={noteSyncStatus}
+        onSave={(text) => onSaveNote(item, text)}
+        onDelete={() => onDeleteNote(item)}
+      />
 
       <button
         type="button"

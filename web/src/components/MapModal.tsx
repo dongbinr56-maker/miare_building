@@ -120,7 +120,7 @@ export function MapModal({
       maxZoom: 20,
     }).addTo(map)
 
-    // 매물을 중심으로 생활권 기준 반경 800m를 항상 표시한다.
+    // 매물을 중심으로 생활권 기준 반경 500m를 항상 표시한다.
     const radiusCircle = L.circle([lat, lon], {
       radius: listingCircle.radiusM,
       color: '#3182f6',
@@ -241,7 +241,7 @@ export function MapModal({
             <div className="grid grid-cols-2 gap-x-3 gap-y-1">
               <span className="inline-flex items-center gap-1.5">
                 <i className="h-2.5 w-2.5 rounded-full border-2 border-blue bg-blue/15" />
-                800m 반경
+                {NEARBY_MAP_RADIUS_M}m 반경
               </span>
               <span className="inline-flex items-center gap-1.5">
                 <i className="h-2.5 w-2.5 rounded-sm border-2 border-[#16a34a] bg-[#22c55e]/25" />

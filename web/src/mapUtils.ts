@@ -1,6 +1,6 @@
 /** Leaflet에 전달하기 전 지도 좌표/생활권 시설을 검증하는 순수 유틸리티. */
 
-export const NEARBY_MAP_RADIUS_M = 800
+export const NEARBY_MAP_RADIUS_M = 500
 
 export type LeafletLatLon = readonly [lat: number, lon: number]
 
@@ -98,7 +98,7 @@ export function geometryToLeafletRings(geometry: unknown): LeafletLatLon[][] {
 
 export function listingRadiusCircle(lat: unknown, lon: unknown): {
   center: LeafletLatLon
-  radiusM: number
+  radiusM: typeof NEARBY_MAP_RADIUS_M
 } | null {
   const center = toLeafletLatLon([lat, lon])
   return center ? { center, radiusM: NEARBY_MAP_RADIUS_M } : null

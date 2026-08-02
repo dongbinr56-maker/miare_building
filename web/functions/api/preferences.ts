@@ -5,7 +5,7 @@ interface PreferencesEnv {
   REFRESH_KV: KVNamespace;
 }
 
-type PreferenceKind = "favorites" | "hidden";
+type PreferenceKind = "favorites" | "hidden" | "notes";
 
 interface PreferenceEnvelope {
   version: 1;
@@ -13,9 +13,20 @@ interface PreferenceEnvelope {
   data: unknown;
 }
 
+interface NoteRecord {
+  noteId: string;
+  text: string;
+  updatedAt: string;
+}
+
 const MAX_BODY_BYTES = 2 * 1024 * 1024;
+const MAX_NOTES_BODY_BYTES = 512 * 1024;
 const MAX_ENTRIES = 500;
+const MAX_NOTE_IDS = 2_000;
+const MAX_NOTE_LENGTH = 1_000;
+const MAX_NOTE_BYTES = 4_096;
 const LISTING_ID_PATTERN = /^(?:naver|daangn):\d+$/;
+const NOTE_ID_PATTERN = /^[A-Za-z0-9][A-Za-z0-9_-]{0,127}$/;
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null && !Array.isArray(value);
@@ -23,7 +34,7 @@ function isRecord(value: unknown): value is Record<string, unknown> {
 
 function preferenceKind(request: Request): PreferenceKind | null {
   const kind = new URL(request.url).searchParams.get("kind");
-  return kind === "favorites" || kind === "hidden" ? kind : null;
+  return kind === "favorites" || kind === "hidden" || kind === "notes" ? kind : null;
 }
 
 function isListingId(value: unknown): value is string {
@@ -89,14 +100,64 @@ function isHiddenData(value: unknown): boolean {
   return expected.length === supplied.length && expected.every((id, index) => id === supplied[index]);
 }
 
+function isNoteRecord(value: unknown): value is NoteRecord {
+  if (!isRecord(value)) return false;
+  const keys = Object.keys(value);
+  if (
+    keys.length !== 3 ||
+    !keys.every((key) => key === "noteId" || key === "text" || key === "updatedAt") ||
+    typeof value.noteId !== "string" ||
+    !NOTE_ID_PATTERN.test(value.noteId) ||
+    typeof value.text !== "string" ||
+    value.text.length === 0 ||
+    value.text.length > MAX_NOTE_LENGTH ||
+    value.text.trim().length === 0 ||
+    new TextEncoder().encode(value.text).byteLength > MAX_NOTE_BYTES ||
+    typeof value.updatedAt !== "string" ||
+    value.updatedAt.length > 64 ||
+    Number.isNaN(Date.parse(value.updatedAt))
+  ) {
+    return false;
+  }
+  return true;
+}
+
+function isNotesData(value: unknown): boolean {
+  if (!isRecord(value) || value.version !== 1 || !isRecord(value.entries)) return false;
+  const keys = Object.keys(value);
+  if (keys.length !== 2 || !keys.every((key) => key === "version" || key === "entries")) {
+    return false;
+  }
+  const entries = Object.entries(value.entries);
+  if (
+    entries.length > MAX_NOTE_IDS ||
+    !entries.every(([id, note]) => isListingId(id) && isNoteRecord(note))
+  ) {
+    return false;
+  }
+
+  // 같은 noteId는 병합 카드의 플랫폼별 복제본이므로 내용과 시각도 같아야 한다.
+  const noteSignatures = new Map<string, string>();
+  for (const [, rawNote] of entries) {
+    const note = rawNote as NoteRecord;
+    const signature = `${note.updatedAt}\u0000${note.text}`;
+    const previous = noteSignatures.get(note.noteId);
+    if (previous !== undefined && previous !== signature) return false;
+    noteSignatures.set(note.noteId, signature);
+  }
+  return true;
+}
+
 function validPreferenceData(kind: PreferenceKind, value: unknown): boolean {
-  return kind === "favorites" ? isFavoritesData(value) : isHiddenData(value);
+  if (kind === "favorites") return isFavoritesData(value);
+  if (kind === "hidden") return isHiddenData(value);
+  return isNotesData(value);
 }
 
 function emptyPreference(kind: PreferenceKind): unknown {
-  return kind === "favorites"
-    ? {}
-    : { version: 1, blockedIds: [], entries: [] };
+  if (kind === "favorites") return {};
+  if (kind === "hidden") return { version: 1, blockedIds: [], entries: [] };
+  return { version: 1, entries: {} };
 }
 
 async function storageIdentity(
@@ -173,13 +234,19 @@ export const onRequestPut: PagesFunction<PreferencesEnv, string, AccessContextDa
   const identity = await preferenceIdentity(data, kind);
   if (!identity) return noStoreJson({ error: "인증 사용자를 확인할 수 없습니다." }, 401);
 
+  const contentType = request.headers.get("Content-Type")?.split(";", 1)[0]?.trim().toLowerCase();
+  if (contentType !== "application/json") {
+    return noStoreJson({ error: "사용자 설정은 JSON 형식이어야 합니다." }, 415);
+  }
+
+  const bodyLimit = kind === "notes" ? MAX_NOTES_BODY_BYTES : MAX_BODY_BYTES;
   const declaredLength = Number(request.headers.get("Content-Length"));
-  if (Number.isFinite(declaredLength) && declaredLength > MAX_BODY_BYTES) {
+  if (Number.isFinite(declaredLength) && declaredLength > bodyLimit) {
     return noStoreJson({ error: "사용자 설정 데이터가 너무 큽니다." }, 413);
   }
 
   const raw = await request.text();
-  if (new TextEncoder().encode(raw).byteLength > MAX_BODY_BYTES) {
+  if (new TextEncoder().encode(raw).byteLength > bodyLimit) {
     return noStoreJson({ error: "사용자 설정 데이터가 너무 큽니다." }, 413);
   }
 
@@ -188,6 +255,12 @@ export const onRequestPut: PagesFunction<PreferencesEnv, string, AccessContextDa
     body = JSON.parse(raw);
   } catch {
     return noStoreJson({ error: "사용자 설정 JSON이 올바르지 않습니다." }, 400);
+  }
+  if (
+    kind === "notes" &&
+    (!isRecord(body) || body.accountId !== identity.accountId)
+  ) {
+    return noStoreJson({ error: "인증 계정이 변경되어 메모를 저장하지 않았습니다." }, 409);
   }
   if (!isRecord(body) || !validPreferenceData(kind, body.data)) {
     return noStoreJson({ error: "사용자 설정 형식이 올바르지 않습니다." }, 400);

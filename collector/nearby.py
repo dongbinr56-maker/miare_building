@@ -19,6 +19,8 @@ from urllib import parse, request
 
 
 SCHEMA_VERSION = 2
+NEARBY_RADIUS_M = 500
+DEFAULT_CACHE_TTL_HOURS = 24
 ROOT = Path(__file__).resolve().parents[1]
 DEFAULT_ENDPOINTS = (
     "https://maps.mail.ru/osm/tools/overpass/api/interpreter",
@@ -381,7 +383,7 @@ def _catalog_for_bbox(bbox, settings, log, fetcher, now):
     path = _cache_path(settings)
     cache = _read_cache(path)
     covered = bool(cache and _cache_covers(cache, bbox))
-    ttl_hours = max(0, float(settings.get("cacheTtlHours", 168)))
+    ttl_hours = max(0, float(settings.get("cacheTtlHours", DEFAULT_CACHE_TTL_HOURS)))
     if covered and _is_fresh(cache, ttl_hours, now):
         return cache["pois"], "cache", cache["fetchedAt"]
 
@@ -506,9 +508,9 @@ def prefetch_nearby_facilities(settings, log=None, fetcher=None, now=None):
     if south >= north or west >= east:
         raise ValueError("nearbyFacilities.prefetchBbox 경계 순서가 올바르지 않습니다")
 
-    radius_m = int(settings.get("nearbyRadiusM", settings.get("radiusM", 800)))
-    if not 500 <= radius_m <= 800:
-        raise ValueError("nearbyRadiusM는 500~800m 범위여야 합니다")
+    radius_m = int(settings.get("nearbyRadiusM", settings.get("radiusM", NEARBY_RADIUS_M)))
+    if radius_m != NEARBY_RADIUS_M:
+        raise ValueError(f"nearbyRadiusM는 {NEARBY_RADIUS_M}m여야 합니다")
     query_bbox = _expanded_bbox([(south, west), (north, east)], radius_m)
     pois, data_status, checked_at = _catalog_for_bbox(
         query_bbox, settings, log, fetcher, now
@@ -526,7 +528,7 @@ def filter_by_nearby_facilities(listings, settings, log=None, fetcher=None, now=
 
     반환값은 ``(filtered_listings, stats)``다. 원본 항목을 변경하지 않으며 통과한
     항목에는 ``nearbyFacilities``와 ``nearbyFacilityCheck``를 추가한다.
-    ``nearbyRadiusM``는 사용자 요구 범위인 500~800m만 허용한다.
+    ``nearbyRadiusM``는 현재 사업계획 기준인 500m만 허용한다.
     """
     log = log or (lambda _message: None)
     fetcher = fetcher or _default_fetcher
@@ -536,9 +538,9 @@ def filter_by_nearby_facilities(listings, settings, log=None, fetcher=None, now=
     if not settings.get("enabled", True):
         return items, {"input": len(items), "kept": len(items), "disabled": True}
 
-    radius_m = int(settings.get("nearbyRadiusM", settings.get("radiusM", 800)))
-    if not 500 <= radius_m <= 800:
-        raise ValueError("nearbyRadiusM는 500~800m 범위여야 합니다")
+    radius_m = int(settings.get("nearbyRadiusM", settings.get("radiusM", NEARBY_RADIUS_M)))
+    if radius_m != NEARBY_RADIUS_M:
+        raise ValueError(f"nearbyRadiusM는 {NEARBY_RADIUS_M}m여야 합니다")
     allow_approximate = bool(settings.get("allowApproximateCoordinates", False))
     max_evidence = max(1, int(settings.get("maxEvidencePerListing", 8)))
 

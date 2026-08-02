@@ -19,7 +19,7 @@ Cloudflare Access의 이메일 OTP 인증을 통과한 `miraemom7@gmail.com`,
 | 권리금 | 없음 필수 (미표기는 확인 필요로 판정) |
 | 면적·주차 | 판정 조건에서 제외 |
 | 지역 | 광산구 전체 법정동 (네이버 지역 API에서 매번 동적 조회) |
-| 생활권 | 매물 경계에서 800m 이내 초·중·고·대학교 또는 아파트 단지 필수 |
+| 생활권 | 매물 경계에서 500m 이내 초·중·고·대학교 또는 아파트 단지 필수 |
 
 가격·층·무권리 조건을 모두 만족하고 생활권 근거까지 확인된 매물만 최종 데이터에
 포함한다. 흐림 좌표나 생활권 확인 실패 매물은 보수적으로 제외한다. 조건 수정은
@@ -28,7 +28,7 @@ Cloudflare Access의 이메일 OTP 인증을 통과한 `miraemom7@gmail.com`,
 생활권 데이터는 개별 아파트 동(`building=apartments`)이 아니라 OSM의 학교와
 아파트 단지 경계만 받는다. 광산구 전체 카탈로그를 매물 수집 전에 준비하고,
 Overpass 결과는 KV에 24시간 보관해 같은 기간의 추가 새로고침에서는 재호출하지
-않는다. 지도 버튼을 누르면 매물 중심 800m 원과 반경 안 시설 경계를 폴리곤으로
+않는다. 지도 버튼을 누르면 매물 중심 500m 원과 반경 안 시설 경계를 폴리곤으로
 표시한다.
 
 권리금은 `있음 > 근거 있는 무권리 > 확인 불가` 순서로 보수 판정한다. 구조화
@@ -44,7 +44,7 @@ Overpass 결과는 KV에 24시간 보관해 같은 기간의 추가 새로고침
 │   ├─ (내장) 네이버 부동산: new.land API를 브라우저 컨텍스트에서 호출
 │   ├─ daangn.py            당근 부동산: region API + GraphQL(APQ) 순수 HTTP 수집
 │   ├─ rules.py             조건 평가 공통 로직
-│   └─ nearby.py            800m 학교·아파트 생활권 검증
+│   └─ nearby.py            500m 학교·아파트 생활권 검증
 │    └→ web/public/data/listings.json (임시 생성본, Git 제외)
 ├─ web/                     React + Vite + Tailwind 대시보드
 │   ├─ public/data/listings.fallback.json  빈 안전 fallback
@@ -93,6 +93,8 @@ Cloudflare Access가 검증한 이메일별 KV 차단 목록에 저장하므로 
 동일 계정으로 로그인하면 계속 숨겨진다. **숨긴 매물 관리**에서 개별 또는 전체
 복구할 수 있고, 새 번호로 다시 등록된 매물은 새 매물로 표시된다. 즐겨찾기도 같은
 방식으로 이메일 계정에 동기화하며 브라우저 localStorage는 오프라인 캐시로 유지한다.
+카드의 **메모 추가**로 작성한 개인 메모도 인증 이메일별 KV에 저장되고, 병합 카드의
+모든 플랫폼 매물 번호에 연결되어 다른 기기와 새 수집 데이터에서도 정체성을 유지한다.
 지역 선택 목록은 최종 적합 매물이 1건 이상인 법정동만 표시한다.
 
 ## 로컬 실행
@@ -125,8 +127,9 @@ GitHub 클라우드 수집기 설정은 [MANUAL_REFRESH.md](MANUAL_REFRESH.md)�
 2. GitHub 저장소 **Settings → Secrets and variables → Actions**에 다음 secrets를
    등록한다.
    - `CLOUDFLARE_ACCOUNT_ID`
-   - `CLOUDFLARE_API_TOKEN`: **Browser Rendering Edit**와
-     **Workers KV Storage Edit**만 허용한 최소 권한 토큰
+   - `CLOUDFLARE_API_TOKEN`: **Cloudflare Pages Edit**,
+     **Workers KV Storage Edit**, **Browser Run**(대시보드에 따라
+     Browser Rendering Write/Edit로 표시) 권한을 해당 Account에만 허용한 토큰
 3. Pages production 설정에 `GITHUB_REPOSITORY`, `GITHUB_WORKFLOW_ID` 변수를 두고,
    해당 저장소의 Actions 실행 권한을 가진 `GITHUB_ACTIONS_TOKEN`을 secret으로 둔다.
 4. GitHub **Settings → Pages**에서 GitHub Pages를 비활성화한다. 저장소가 공개 상태면

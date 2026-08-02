@@ -47,7 +47,7 @@ jobs:
       - name: Run web tests
         working-directory: web
         run: |
-          node --experimental-strip-types --test tests/map-utils.test.ts
+          node --experimental-strip-types --test tests/*.test.ts
           node --experimental-strip-types --test functions/tests/*.test.mjs
 
       - name: Lint and build

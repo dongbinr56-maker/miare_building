@@ -68,7 +68,7 @@ export interface NearbyFacilityEvidence {
 
 export interface NearbyFacilityCheck {
   withinRadius: true
-  radiusM: number
+  radiusM: 500
   source: 'openstreetmap_overpass'
   dataStatus: 'network' | 'cache' | 'stale_cache'
   checkedAt: string
@@ -173,7 +173,7 @@ export interface ListingData {
       excludedUnreliableCoordinate: number
       excludedNoFacility: number
       excludedUnavailable: number
-      radiusM: number
+      radiusM: 500
       source: 'openstreetmap_overpass'
       dataStatus?: 'network' | 'cache' | 'stale_cache' | 'unavailable'
     }

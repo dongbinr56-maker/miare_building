@@ -36,7 +36,7 @@
       "excludedUnreliableCoordinate": 0,
       "excludedNoFacility": 0,
       "excludedUnavailable": 0,
-      "radiusM": 800,
+      "radiusM": 500,
       "source": "openstreetmap_overpass",
       "dataStatus": "unavailable"
     }

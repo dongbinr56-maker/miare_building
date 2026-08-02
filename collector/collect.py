@@ -32,7 +32,11 @@ from rules import (
 )
 from daangn import collect_daangn
 from dedupe import merge_duplicates
-from nearby import filter_by_nearby_facilities, prefetch_nearby_facilities
+from nearby import (
+    NEARBY_RADIUS_M,
+    filter_by_nearby_facilities,
+    prefetch_nearby_facilities,
+)
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 CONFIG_PATH = os.path.join(ROOT, "collector", "config.json")
@@ -487,7 +491,7 @@ def main():
     log(
         "최종 선별: "
         f"조건 충족 {len(full_candidates)}건 -> 생활권 확인 {len(listings)}건 "
-        f"(반경 {nearby_stats.get('radiusM', 800)}m)"
+        f"(반경 {nearby_stats.get('radiusM', NEARBY_RADIUS_M)}m)"
     )
 
     # UI의 지역별 건수는 네이버 원본 수가 아니라 당근 포함·중복 병합 후의

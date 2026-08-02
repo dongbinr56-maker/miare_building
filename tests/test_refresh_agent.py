@@ -39,6 +39,17 @@ def listing_data():
         "updatedAt": "2026-08-02T21:00:00+09:00",
         "criteria": dict(refresh_agent.EXPECTED_CRITERIA),
         "stats": {
+            "nearby": {
+                "input": 1,
+                "kept": 1,
+                "excludedMissingCoordinate": 0,
+                "excludedUnreliableCoordinate": 0,
+                "excludedNoFacility": 0,
+                "excludedUnavailable": 0,
+                "radiusM": refresh_agent.EXPECTED_NEARBY_RADIUS_M,
+                "source": "openstreetmap_overpass",
+                "dataStatus": "cache",
+            },
             "premiumAudit": {
                 "positiveMisclassified": 0,
                 "noPremiumWithoutEvidence": 0,
@@ -67,6 +78,19 @@ def listing_data():
                     "premium": True,
                 },
                 "matchLevel": "full",
+                "nearbyFacilityCheck": {
+                    "withinRadius": True,
+                    "radiusM": refresh_agent.EXPECTED_NEARBY_RADIUS_M,
+                    "source": "openstreetmap_overpass",
+                    "dataStatus": "cache",
+                    "checkedAt": "2026-08-02T12:00:00Z",
+                },
+                "nearbyFacilities": [
+                    {
+                        "name": "테스트초등학교",
+                        "distanceM": 500,
+                    }
+                ],
             }
         ],
     }
@@ -447,6 +471,22 @@ class RefreshAgentTests(unittest.TestCase):
         tampered["criteria"]["depositMin"] = 0
         with self.assertRaisesRegex(RuntimeError, "운영 기준"):
             refresh_agent._validate_listings(json.dumps(tampered).encode())
+
+    def test_upload_rejects_non_500m_or_missing_nearby_evidence(self):
+        wrong_stats = listing_data()
+        wrong_stats["stats"]["nearby"]["radiusM"] = 800
+        with self.assertRaisesRegex(RuntimeError, "500m 운영 기준"):
+            refresh_agent._validate_listings(json.dumps(wrong_stats).encode())
+
+        outside = listing_data()
+        outside["listings"][0]["nearbyFacilities"][0]["distanceM"] = 500.01
+        with self.assertRaisesRegex(RuntimeError, "500m 생활권"):
+            refresh_agent._validate_listings(json.dumps(outside).encode())
+
+        missing = listing_data()
+        missing["listings"][0]["nearbyFacilities"] = []
+        with self.assertRaisesRegex(RuntimeError, "500m 생활권"):
+            refresh_agent._validate_listings(json.dumps(missing).encode())
 
 
 if __name__ == "__main__":

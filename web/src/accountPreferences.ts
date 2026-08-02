@@ -1,4 +1,4 @@
-export type AccountPreferenceKind = 'favorites' | 'hidden'
+export type AccountPreferenceKind = 'favorites' | 'hidden' | 'notes'
 
 export interface AccountPreferenceResult {
   accountId: string
@@ -38,6 +38,7 @@ export async function loadAccountPreference(
 export async function saveAccountPreference(
   kind: AccountPreferenceKind,
   data: unknown,
+  expectedAccountId?: string,
 ): Promise<AccountPreferenceResult> {
   const response = await fetch(endpoint(kind), {
     method: 'PUT',
@@ -47,7 +48,7 @@ export async function saveAccountPreference(
       'Content-Type': 'application/json',
       'X-Requested-With': 'miare-dashboard',
     },
-    body: JSON.stringify({ data }),
+    body: JSON.stringify({ data, ...(expectedAccountId ? { accountId: expectedAccountId } : {}) }),
   })
   if (!response.ok) throw new Error(`계정 설정 저장 실패: HTTP ${response.status}`)
   const value: unknown = await response.json()

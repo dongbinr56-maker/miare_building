@@ -9,7 +9,7 @@ import {
   toLeafletLatLon,
 } from '../src/mapUtils.ts'
 
-test('Leaflet 좌표 순서와 800m 원을 고정한다', () => {
+test('Leaflet 좌표 순서와 500m 원을 고정한다', () => {
   assert.deepEqual(toLeafletLatLon([35.19, 126.82]), [35.19, 126.82])
   assert.equal(toLeafletLatLon([126.82, 35.19]), null)
   assert.equal(toLeafletLatLon([null, null]), null)
@@ -18,7 +18,7 @@ test('Leaflet 좌표 순서와 800m 원을 고정한다', () => {
     center: [35.19, 126.82],
     radiusM: NEARBY_MAP_RADIUS_M,
   })
-  assert.equal(NEARBY_MAP_RADIUS_M, 800)
+  assert.equal(NEARBY_MAP_RADIUS_M, 500)
 })
 
 test('relation/multipolygon의 중첩 링을 Leaflet [lat, lon] 링으로 펼친다', () => {
@@ -60,19 +60,19 @@ test('geometry가 없거나 잘못된 경우 시설 중심 좌표로 fallback한
   })
 })
 
-test('800m 경계는 포함하고 800m 밖 시설은 표시하지 않는다', () => {
+test('500m 경계는 포함하고 500m 밖 시설은 표시하지 않는다', () => {
   const overlays = buildFacilityOverlays([
     {
       kind: 'apartment_complex',
       name: '경계 아파트',
-      distanceM: 800,
+      distanceM: 500,
       lat: 35.18,
       lon: 126.81,
     },
     {
       kind: 'university',
       name: '반경 밖 대학교',
-      distanceM: 800.01,
+      distanceM: 500.01,
       lat: 35.2,
       lon: 126.84,
     },

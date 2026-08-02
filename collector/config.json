@@ -14,7 +14,7 @@
   },
   "nearbyFacilities": {
     "enabled": true,
-    "nearbyRadiusM": 800,
+    "nearbyRadiusM": 500,
     "allowApproximateCoordinates": false,
     "prefetchBbox": [35.0690855, 126.6447028, 35.2588841, 126.8604112],
     "cachePath": "collector/.cache/nearby_facilities.json",

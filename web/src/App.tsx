@@ -8,12 +8,14 @@ import { MapModal } from './components/MapModal'
 import { RefreshButton } from './components/RefreshButton'
 import { HiddenListingsManager } from './components/HiddenListingsManager'
 import { useHiddenListings } from './useHiddenListings'
+import { useListingNotes } from './useListingNotes'
 import DotGrid from './components/DotGrid'
 import SplitText from './components/reactbits/SplitText'
 import ShinyText from './components/reactbits/ShinyText'
 import ClickSpark from './components/reactbits/ClickSpark'
 import AnimatedContent from './components/reactbits/AnimatedContent'
 import type { Criteria, Listing } from './types'
+import { NEARBY_MAP_RADIUS_M } from './mapUtils'
 
 const PAGE_SIZE = 60
 
@@ -104,6 +106,7 @@ export default function App() {
   const { data, error, loading, reload } = useListings()
   const fav = useFavorites()
   const hidden = useHiddenListings()
+  const notes = useListingNotes()
   const isHidden = hidden.isHidden
   const [filters, setFilters] = useState<Filters>(DEFAULT_FILTERS)
   const [visible, setVisible] = useState(PAGE_SIZE)
@@ -191,7 +194,7 @@ export default function App() {
                     ? 'B1~2층'
                     : '대상 층수',
                   '무권리 필수',
-                  `학교·아파트 ${data.stats.nearby?.radiusM ?? 800}m 이내`,
+                  `학교·아파트 ${data.stats.nearby?.radiusM ?? NEARBY_MAP_RADIUS_M}m 이내`,
                   '면적·주차 무관',
                 ].map((c) => (
                   <span
@@ -279,6 +282,11 @@ export default function App() {
                     onToggleFav={fav.toggle}
                     onOpenMap={setMapItem}
                     onHide={hidden.hide}
+                    note={notes.getNote(item)}
+                    notesReady={notes.ready}
+                    noteSyncStatus={notes.syncStatus}
+                    onSaveNote={notes.saveNote}
+                    onDeleteNote={notes.deleteNote}
                   />
                 ))}
               </div>

@@ -50,6 +50,7 @@ EXPECTED_CRITERIA = {
     "floorMax": 2,
     "requireNoPremium": True,
 }
+EXPECTED_NEARBY_RADIUS_M = 500
 
 
 def _wrangler_command() -> list[str]:
@@ -183,9 +184,19 @@ def _validate_listings(raw: bytes, *, require_strict_premium: bool = True) -> st
         criteria = value["criteria"]
         if any(criteria.get(key) != expected for key, expected in EXPECTED_CRITERIA.items()):
             raise RuntimeError("매물 검색 조건이 승인된 운영 기준과 일치하지 않습니다.")
+        nearby_stats = value["stats"].get("nearby")
+        if (
+            not isinstance(nearby_stats, dict)
+            or nearby_stats.get("radiusM") != EXPECTED_NEARBY_RADIUS_M
+            or nearby_stats.get("source") != "openstreetmap_overpass"
+            or nearby_stats.get("kept") != len(listings)
+        ):
+            raise RuntimeError("생활권 필터 결과가 승인된 500m 운영 기준과 일치하지 않습니다.")
         for listing in listings:
             merged_ids = listing.get("mergedListingIds")
             checks = listing.get("checks")
+            nearby_check = listing.get("nearbyFacilityCheck")
+            nearby_facilities = listing.get("nearbyFacilities")
             try:
                 recalculated_checks, recalculated_level = evaluate(
                     listing.get("deposit"),
@@ -221,8 +232,25 @@ def _validate_listings(raw: bytes, *, require_strict_premium: bool = True) -> st
                     recalculated_checks.get(key) is not True
                     for key in ("deposit", "rent", "floor", "premium")
                 )
+                or not isinstance(nearby_check, dict)
+                or nearby_check.get("withinRadius") is not True
+                or nearby_check.get("radiusM") != EXPECTED_NEARBY_RADIUS_M
+                or nearby_check.get("source") != "openstreetmap_overpass"
+                or nearby_check.get("dataStatus") not in {"network", "cache", "stale_cache"}
+                or _parse_time(nearby_check.get("checkedAt")) is None
+                or not isinstance(nearby_facilities, list)
+                or not nearby_facilities
+                or any(
+                    not isinstance(facility, dict)
+                    or not _is_finite_number(facility.get("distanceM"))
+                    or float(facility["distanceM"]) < 0
+                    or float(facility["distanceM"]) > EXPECTED_NEARBY_RADIUS_M
+                    for facility in nearby_facilities
+                )
             ):
-                raise RuntimeError("최종 데이터에 조건 미충족 또는 잘못된 ID 매물이 포함되어 있습니다.")
+                raise RuntimeError(
+                    "최종 데이터에 조건 미충족·500m 생활권 미충족 또는 잘못된 ID 매물이 포함되어 있습니다."
+                )
         premium_audit = value["stats"].get("premiumAudit")
         required_counters = {
             "positiveMisclassified",
