@@ -1,0 +1,45 @@
+{
+  "updatedAt": "",
+  "criteria": {
+    "depositMin": 500,
+    "depositMax": 1000,
+    "rentMax": 60,
+    "floorMin": -1,
+    "floorMax": 2,
+    "requireNoPremium": true
+  },
+  "tradeType": "B2",
+  "realEstateTypes": ["SG"],
+  "regions": [],
+  "stats": {
+    "total": 0,
+    "full": 0,
+    "near": 0,
+    "new": 0,
+    "naver": 0,
+    "daangn": 0,
+    "merged": 0,
+    "crossListed": 0,
+    "excludedByCriteria": 0,
+    "premiumAudit": {
+      "positiveMisclassified": 0,
+      "noPremiumWithoutEvidence": 0,
+      "regressionListingSelected": 0,
+      "classificationInconsistent": 0,
+      "selectedWithoutNoPremiumProof": 0,
+      "totalViolations": 0
+    },
+    "nearby": {
+      "input": 0,
+      "kept": 0,
+      "excludedMissingCoordinate": 0,
+      "excludedUnreliableCoordinate": 0,
+      "excludedNoFacility": 0,
+      "excludedUnavailable": 0,
+      "radiusM": 800,
+      "source": "openstreetmap_overpass",
+      "dataStatus": "unavailable"
+    }
+  },
+  "listings": []
+}

@@ -8,8 +8,8 @@
   2. 같은 브라우저 컨텍스트 안에서(page.evaluate + fetch) API를 호출한다.
      - 외부 HTTP 클라이언트(requests 등)는 네이버 WAF의 TLS 핑거프린팅에
        걸려 429가 반환되므로 반드시 브라우저 내부에서 호출해야 한다.
-  3. 검색 API로 동 이름 -> cortarNo(네이버 지역코드)를 해석한다.
-  4. 동별 매물 목록을 전 페이지 수집하고 조건 충족 여부를 평가해
+  3. 광산구 cortarNo의 하위 법정동(sec) 목록을 동적으로 조회한다.
+  4. 법정동별 매물 목록을 전 페이지 수집하고 조건 충족 여부를 평가해
      web/public/data/listings.json 으로 저장한다.
 
 실행: python collector/collect.py  (저장소 루트 기준 상대경로 처리됨)
@@ -24,9 +24,15 @@ from datetime import datetime, timezone, timedelta
 
 from playwright.sync_api import sync_playwright
 
-from rules import evaluate
+from rules import (
+    audit_premium_classifications,
+    evaluate,
+    explicit_no_premium_evidence,
+    explicit_premium_amount_evidence,
+)
 from daangn import collect_daangn
 from dedupe import merge_duplicates
+from nearby import filter_by_nearby_facilities, prefetch_nearby_facilities
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 CONFIG_PATH = os.path.join(ROOT, "collector", "config.json")
@@ -36,6 +42,7 @@ UA = ("Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 "
       "(KHTML, like Gecko) Chrome/126.0.0.0 Safari/537.36")
 
 ENTRY_URL = "https://new.land.naver.com/offices?ms=35.1915,126.8210,15&a=SG&b=B2"
+REGION_LIST_URL = "https://new.land.naver.com/api/regions/list?cortarNo={cortar_no}"
 
 FETCH_JS = """
 async ({ url, token }) => {
@@ -49,11 +56,58 @@ async ({ url, token }) => {
 }
 """
 
-NO_PREMIUM_RE = re.compile(r"무권리|권리금\s*(없|무|x|X)|노\s*권리")
+CLOUDFLARE_ACCOUNT_ID_RE = re.compile(r"^[0-9a-fA-F]{32}$")
 
 
 def log(msg):
     print(f"[collect] {msg}", flush=True)
+
+
+def launch_naver_browser(playwright):
+    """Launch locally, or use Cloudflare Browser Run when credentials exist.
+
+    GitHub-hosted runners have previously timed out connecting directly to
+    new.land.naver.com. Browser Run gives the CI collector a remote Chromium
+    session while keeping the local collector fully backwards compatible.
+    """
+    account_id = os.environ.get("CLOUDFLARE_ACCOUNT_ID", "").strip()
+    browser_token = os.environ.get("CLOUDFLARE_BROWSER_TOKEN", "").strip()
+    if bool(account_id) != bool(browser_token):
+        raise RuntimeError("Cloudflare Browser Run 환경변수가 일부만 설정되었습니다.")
+    if account_id:
+        if not CLOUDFLARE_ACCOUNT_ID_RE.fullmatch(account_id):
+            raise RuntimeError("Cloudflare 계정 ID 형식이 올바르지 않습니다.")
+        endpoint = (
+            "wss://api.cloudflare.com/client/v4/accounts/"
+            f"{account_id}/browser-rendering/devtools/browser?keep_alive=600000"
+        )
+        log("Cloudflare Browser Run 원격 Chromium 연결 중...")
+        browser = playwright.chromium.connect_over_cdp(
+            endpoint,
+            headers={"Authorization": f"Bearer {browser_token}"},
+            timeout=60_000,
+        )
+        # Browser Run의 기본 컨텍스트는 일반 네이버 홈으로 리디렉션될 수 있다.
+        # 로컬 수집기와 동일한 UA/locale을 가진 격리 컨텍스트를 명시적으로 만들어
+        # new.land가 사용하는 API Authorization 요청을 안정적으로 포착한다.
+        context = browser.new_context(
+            user_agent=UA,
+            locale="ko-KR",
+            viewport={"width": 1400, "height": 900},
+        )
+        page = context.new_page()
+        return browser, context, page
+
+    browser = playwright.chromium.launch(
+        headless=True,
+        args=["--disable-blink-features=AutomationControlled", "--lang=ko-KR"],
+    )
+    context = browser.new_context(
+        user_agent=UA,
+        locale="ko-KR",
+        viewport={"width": 1400, "height": 900},
+    )
+    return browser, context, context.new_page()
 
 
 def load_config():
@@ -110,16 +164,40 @@ class NaverLandSession:
         time.sleep(random.uniform(0.8, 1.6))
 
 
-def resolve_region(sess, prefix, name):
-    """검색 API로 동 이름 -> {cortarNo, centerLat, centerLon} 해석."""
-    from urllib.parse import quote
-    body = sess.get(f"https://new.land.naver.com/api/search?keyword={quote(prefix + ' ' + name)}")
-    for r in (body or {}).get("regions", []):
-        cortar_name = r.get("cortarName", "")
-        if r.get("cortarType") == "sec" and prefix in cortar_name and cortar_name.endswith(name):
-            return {"name": name, "cortarNo": r["cortarNo"],
-                    "centerLat": r.get("centerLat"), "centerLon": r.get("centerLon")}
-    return None
+def discover_child_regions(sess, parent_cortar_no):
+    """구 cortarNo 아래의 모든 법정동(sec)을 네이버 지역 API에서 조회한다.
+
+    일부 동만 수집하는 정적 폴백은 두지 않는다. API가 실패하거나 응답 스키마가
+    바뀌면 빈 목록을 반환해 호출자가 전체 수집을 중단하도록 한다.
+    """
+    body = sess.get(REGION_LIST_URL.format(cortar_no=parent_cortar_no))
+    if not isinstance(body, dict):
+        return []
+
+    # 현재 API 키는 regionList다. regions는 과거/테스트 응답과의 호환용이다.
+    raw_regions = body.get("regionList")
+    if not isinstance(raw_regions, list):
+        raw_regions = body.get("regions")
+    if not isinstance(raw_regions, list):
+        return []
+
+    regions = []
+    seen = set()
+    for raw in raw_regions:
+        if not isinstance(raw, dict) or raw.get("cortarType") != "sec":
+            continue
+        cortar_no = str(raw.get("cortarNo") or "").strip()
+        name = str(raw.get("cortarName") or "").strip()
+        if not cortar_no or not name or cortar_no in seen:
+            continue
+        seen.add(cortar_no)
+        regions.append({
+            "name": name,
+            "cortarNo": cortar_no,
+            "centerLat": raw.get("centerLat"),
+            "centerLon": raw.get("centerLon"),
+        })
+    return regions
 
 
 def fetch_region_articles(sess, cortar_no, real_estate_type, trade_type, max_pages):
@@ -156,9 +234,33 @@ def normalize(raw, dong, criteria):
     pyeong = round(area_m2 * 0.3025, 1) if area_m2 else None
 
     desc = raw.get("articleFeatureDesc") or ""
-    no_premium = bool(NO_PREMIUM_RE.search(desc))
+    premium_amount_evidence = explicit_premium_amount_evidence(desc)
+    premium_match = explicit_no_premium_evidence(desc)
+    premium_amount = (
+        premium_amount_evidence["amount"] if premium_amount_evidence else None
+    )
+    if premium_amount is not None:
+        premium_status = "present"
+        no_premium = False
+    else:
+        no_premium = premium_match is not None
+        premium_status = "none" if no_premium else "unknown"
 
-    checks, match_level = evaluate(deposit, rent, floor, pyeong, criteria)
+    desc_parts = [
+        part.strip()
+        for part in desc.split(" · ")
+        if part.strip() and not re.search(r"무\s*권리|권리금", part, re.IGNORECASE)
+    ]
+    if premium_status == "present":
+        desc_parts.insert(0, f"권리금 {premium_amount:,}만원")
+        display_desc = " · ".join(desc_parts)
+    elif premium_status == "none":
+        desc_parts.insert(0, "무권리")
+        display_desc = " · ".join(desc_parts)
+    else:
+        display_desc = desc
+
+    checks, match_level = evaluate(deposit, rent, floor, no_premium, criteria)
 
     article_no = str(raw.get("articleNo"))
     return {
@@ -175,8 +277,24 @@ def normalize(raw, dong, criteria):
         "floorRaw": raw.get("floorInfo"),
         "areaM2": area_m2,
         "pyeong": pyeong,
-        "desc": desc,
+        "desc": display_desc,
         "tags": raw.get("tagList") or [],
+        "premiumMoney": premium_amount,
+        "premiumStatus": premium_status,
+        "premiumEvidence": (
+            {
+                "source": "naver_list_description",
+                "field": "articleFeatureDesc",
+                "matchedText": (
+                    premium_amount_evidence["matchedText"]
+                    if premium_amount_evidence else premium_match
+                ),
+                "contextText": desc,
+                "value": premium_amount,
+                "articleUrl": f"https://new.land.naver.com/offices?articleNo={article_no}",
+            }
+            if premium_amount_evidence or no_premium else None
+        ),
         "noPremium": no_premium,
         "direction": raw.get("direction"),
         "confirmedAt": raw.get("articleConfirmYmd"),
@@ -197,6 +315,19 @@ def main():
     out_path = os.path.join(ROOT, cfg["output"])
     criteria = cfg["criteria"]
 
+    # 매물 수집보다 먼저 광산구 전체 학교·아파트 단지 카탈로그를 확보한다.
+    # 이 단계가 실패하면 비싼 브라우저 수집을 시작하지 않고 기존 데이터를 보존한다.
+    nearby_settings = cfg.get("nearbyFacilities", {})
+    nearby_prefetch = prefetch_nearby_facilities(nearby_settings, log)
+    if nearby_settings.get("enabled", True) and nearby_prefetch.get("dataStatus") == "unavailable":
+        log("광산구 생활권 사전 조회 실패 - 기존 데이터를 보존하고 종료")
+        sys.exit(1)
+    log(
+        "광산구 생활권 사전 조회 완료: "
+        f"학교·아파트 단지 {nearby_prefetch.get('facilityCount', 0)}개 "
+        f"({nearby_prefetch.get('dataStatus')})"
+    )
+
     # 이전 데이터의 firstSeen 맵 (신규 매물 감지용)
     prev_first_seen = {}
     if os.path.exists(out_path):
@@ -215,80 +346,74 @@ def main():
     today = datetime.now(KST).strftime("%Y-%m-%d")
 
     with sync_playwright() as p:
-        browser = p.chromium.launch(
-            headless=True,
-            args=["--disable-blink-features=AutomationControlled", "--lang=ko-KR"],
-        )
-        ctx = browser.new_context(user_agent=UA, locale="ko-KR",
-                                  viewport={"width": 1400, "height": 900})
-        page = ctx.new_page()
+        browser = None
+        try:
+            browser, ctx, page = launch_naver_browser(p)
 
-        token_box = {"v": None}
+            token_box = {"v": None}
 
-        def on_request(req):
-            if token_box["v"] is None and "new.land.naver.com/api/" in req.url:
-                auth = req.headers.get("authorization")
-                if auth and auth.startswith("Bearer "):
-                    token_box["v"] = auth
+            def on_request(req):
+                if token_box["v"] is None and "new.land.naver.com/api/" in req.url:
+                    auth = req.headers.get("authorization")
+                    if auth and auth.startswith("Bearer "):
+                        token_box["v"] = auth
 
-        page.on("request", on_request)
-        log("네이버 부동산 페이지 로드 중...")
-        page.goto(ENTRY_URL, wait_until="domcontentloaded", timeout=60000)
-        for _ in range(40):
-            if token_box["v"]:
-                break
-            page.wait_for_timeout(500)
-        if not token_box["v"]:
-            log("토큰 캡처 실패 - 종료")
-            sys.exit(1)
-        log("토큰 캡처 완료")
+            page.on("request", on_request)
+            log("네이버 부동산 페이지 로드 중...")
+            page.goto(ENTRY_URL, wait_until="domcontentloaded", timeout=60000)
+            for _ in range(40):
+                if token_box["v"]:
+                    break
+                page.wait_for_timeout(500)
+            if not token_box["v"]:
+                log("토큰 캡처 실패 - 종료")
+                sys.exit(1)
+            log("토큰 캡처 완료")
 
-        sess = NaverLandSession(page, token_box["v"])
+            sess = NaverLandSession(page, token_box["v"])
 
-        # 1) 동 코드 해석
-        regions = []
-        for name in cfg["regions"]:
-            r = resolve_region(sess, cfg["regionSearchPrefix"], name)
-            if r:
-                regions.append(r)
-                log(f"지역 해석: {name} -> {r['cortarNo']}")
-            else:
-                log(f"지역 해석 실패: {name} (건너뜀)")
-            sess.sleep()
+            # 1) 광산구 하위 법정동 전체를 동적으로 조회한다.
+            regions = discover_child_regions(sess, cfg["regionCortarNo"])
 
-        if not regions:
-            log("해석된 지역이 없음 - 종료")
-            sys.exit(1)
+            if not regions:
+                log("광산구 하위 법정동 목록 조회 실패 - 기존 데이터를 보존하고 종료")
+                sys.exit(1)
+            log(f"광산구 전체 지역 해석: {len(regions)}개 법정동")
+            for region in regions:
+                log(f"  {region['name']} -> {region['cortarNo']}")
 
-        # 2) 동별 매물 수집
-        listings = []
-        seen_ids = set()
-        region_counts = []
-        for r in regions:
-            count = 0
-            for ret in cfg["realEstateTypes"]:
-                raws = fetch_region_articles(sess, r["cortarNo"], ret,
-                                             cfg["tradeType"], cfg["maxPagesPerRegion"])
-                for raw in raws:
-                    item = normalize(raw, r["name"], criteria)
-                    if item["id"] in seen_ids:
-                        continue
-                    seen_ids.add(item["id"])
-                    item["firstSeen"] = prev_first_seen.get(item["id"], today)
-                    # 신규 = 직전 수집 데이터에 없던 매물 (첫 수집 시에는 전부 기준선이므로 신규 아님)
-                    item["isNew"] = bool(prev_first_seen) and item["id"] not in prev_first_seen
-                    listings.append(item)
-                    count += 1
-                sess.sleep()
-            region_counts.append({"name": r["name"], "cortarNo": r["cortarNo"], "count": count})
-            log(f"{r['name']}: {count}건 (네이버)")
-
-        browser.close()
+            # 2) 동별 매물 수집
+            listings = []
+            seen_ids = set()
+            region_counts = []
+            for r in regions:
+                count = 0
+                for ret in cfg["realEstateTypes"]:
+                    raws = fetch_region_articles(sess, r["cortarNo"], ret,
+                                                 cfg["tradeType"], cfg["maxPagesPerRegion"])
+                    for raw in raws:
+                        item = normalize(raw, r["name"], criteria)
+                        if item["id"] in seen_ids:
+                            continue
+                        seen_ids.add(item["id"])
+                        item["firstSeen"] = prev_first_seen.get(item["id"], today)
+                        # 신규 = 직전 수집 데이터에 없던 매물 (첫 수집 시에는 전부 기준선이므로 신규 아님)
+                        item["isNew"] = bool(prev_first_seen) and item["id"] not in prev_first_seen
+                        listings.append(item)
+                        count += 1
+                    sess.sleep()
+                region_counts.append({"name": r["name"], "cortarNo": r["cortarNo"], "count": count})
+                log(f"{r['name']}: {count}건 (네이버)")
+        finally:
+            # Browser Run continues consuming the daily allowance until the
+            # session closes, so close even on token/API/collector failures.
+            if browser is not None:
+                browser.close()
 
     # 3) 당근 부동산 수집 (순수 HTTP, 브라우저 불필요)
     if cfg.get("daangn", {}).get("enabled", True):
         try:
-            for item in collect_daangn(cfg, criteria, log):
+            for item in collect_daangn(cfg, criteria, regions, log):
                 if item["id"] in seen_ids:
                     continue
                 seen_ids.add(item["id"])
@@ -305,7 +430,49 @@ def main():
     # 중복 병합 (가격·평·층 동일 + 좌표 근접)
     raw_count = len(listings)
     listings = merge_duplicates(listings)
-    log(f"중복 병합: {raw_count}건 -> {len(listings)}건 ({raw_count - len(listings)}건 병합)")
+    deduped_count = len(listings)
+    log(f"중복 병합: {raw_count}건 -> {deduped_count}건 ({raw_count - deduped_count}건 병합)")
+
+    # 양수 권리금 오탐이나 근거 없는 무권리가 한 건이라도 있으면 fail-closed로
+    # 종료해 기존 KV/JSON을 보존한다. 과거 오탐 ID는 병합 ID까지 추적한다.
+    premium_audit = audit_premium_classifications(listings)
+    log(
+        "권리금 감사: "
+        f"양수 오분류 {premium_audit['positiveMisclassified']}건, "
+        f"근거 없는 무권리 {premium_audit['noPremiumWithoutEvidence']}건, "
+        f"회귀 매물 선택 {premium_audit['regressionListingSelected']}건"
+    )
+    if premium_audit["totalViolations"]:
+        log("권리금 감사 실패 - 기존 데이터를 보존하고 종료")
+        sys.exit(1)
+
+    # 가격·층·무권리 조건을 모두 만족한 매물만 생활권 검증 대상으로 삼고,
+    # 반경 안에 학교/대학교/아파트 근거가 확인된 매물만 최종 출력한다.
+    full_candidates = [item for item in listings if item.get("matchLevel") == "full"]
+    listings, nearby_stats = filter_by_nearby_facilities(
+        full_candidates,
+        nearby_settings,
+        log,
+    )
+    nearby_stats["prefetch"] = nearby_prefetch
+    if full_candidates and nearby_stats.get("dataStatus") == "unavailable":
+        log("생활권 데이터 조회 실패 - 기존 데이터를 보존하고 종료")
+        sys.exit(1)
+    log(
+        "최종 선별: "
+        f"조건 충족 {len(full_candidates)}건 -> 생활권 확인 {len(listings)}건 "
+        f"(반경 {nearby_stats.get('radiusM', 800)}m)"
+    )
+
+    # UI의 지역별 건수는 네이버 원본 수가 아니라 당근 포함·중복 병합 후의
+    # 최종 매물 수와 일치해야 한다.
+    final_region_counts = {r["name"]: 0 for r in regions}
+    for item in listings:
+        dong = item.get("dong")
+        if dong in final_region_counts:
+            final_region_counts[dong] += 1
+    for region in region_counts:
+        region["count"] = final_region_counts.get(region["name"], 0)
 
     # 정렬: 충족 우선 -> 월세 낮은순 -> 보증금 낮은순
     level_order = {"full": 0, "near": 1, "low": 2}
@@ -326,8 +493,11 @@ def main():
             "new": sum(1 for x in listings if x.get("isNew")),
             "naver": sum(1 for x in listings if x.get("source") == "naver"),
             "daangn": sum(1 for x in listings if x.get("source") == "daangn"),
-            "merged": raw_count - len(listings),
+            "merged": raw_count - deduped_count,
             "crossListed": sum(1 for x in listings if len(x.get("sources", [])) > 1),
+            "excludedByCriteria": deduped_count - len(full_candidates),
+            "premiumAudit": premium_audit,
+            "nearby": nearby_stats,
         },
         "listings": listings,
     }

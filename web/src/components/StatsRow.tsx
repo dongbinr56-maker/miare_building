@@ -42,12 +42,13 @@ function StatTile({
 
 export function StatsRow({ data }: { data: ListingData }) {
   const { stats } = data
+  const activeRegions = data.regions.filter((region) => region.count > 0).length
   return (
     <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
-      <StatTile i={0} label="조건 충족" value={stats.full} tone="blue" hint="4개 조건 모두 만족" />
-      <StatTile i={1} label="아쉽게 근접" value={stats.near} tone="amber" hint="조건 3개 만족" />
+      <StatTile i={0} label="최종 선별" value={stats.total} tone="blue" hint="모든 조건·생활권 확인 완료" />
+      <StatTile i={1} label="생활권 확인" value={stats.nearby?.kept ?? stats.total} tone="amber" hint={`학교·아파트 ${stats.nearby?.radiusM ?? 800}m 이내`} />
       <StatTile i={2} label="오늘 신규" value={stats.new} tone="green" hint="이번 수집에서 처음 발견" />
-      <StatTile i={3} label="전체 매물" value={stats.total} tone="ink" hint="상가 · 월세 기준" />
+      <StatTile i={3} label="매물 있는 동" value={activeRegions} tone="ink" hint="광산구 전체 법정동 검색" />
     </div>
   )
 }

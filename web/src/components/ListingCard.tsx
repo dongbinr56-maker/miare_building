@@ -11,6 +11,23 @@ function fmtConfirmed(ymd: string | null): string {
   return `${ymd.slice(4, 6)}.${ymd.slice(6, 8)} 확인`
 }
 
+function premiumDisplay(item: Listing): { ok: boolean; label: string } {
+  const amount = item.premiumMoney
+  const status = item.premiumStatus
+    ?? (typeof amount === 'number' && amount > 0
+      ? 'present'
+      : (item.checks.premium ?? item.noPremium) ? 'none' : 'unknown')
+
+  if (status === 'present') {
+    return {
+      ok: false,
+      label: typeof amount === 'number' ? `권리금 ${amount.toLocaleString()}만원` : '권리금 있음',
+    }
+  }
+  if (status === 'none') return { ok: true, label: '무권리' }
+  return { ok: false, label: '권리금 확인 필요' }
+}
+
 function hasCoord(item: Listing): boolean {
   const lat = Number(item.lat)
   const lon = Number(item.lon)
@@ -48,18 +65,22 @@ export function ListingCard({
   isFav,
   onToggleFav,
   onOpenMap,
+  onHide,
 }: {
   item: Listing
   i: number
   isFav: boolean
   onToggleFav: (item: Listing) => void
   onOpenMap: (item: Listing) => void
+  onHide: (item: Listing) => void
 }) {
   const badge = LEVEL_BADGE[item.matchLevel]
   const cardCls =
     item.matchLevel === 'full' ? 'card-full' : item.matchLevel === 'near' ? 'card-near' : 'shadow-toss'
   const dup = (item.dupCount ?? 1) > 1
   const showMap = hasCoord(item)
+  const premium = premiumDisplay(item)
+  const nearestFacility = item.nearbyFacilities?.[0]
 
   return (
     <SpotlightCard
@@ -130,21 +151,37 @@ export function ListingCard({
       <div className="flex flex-wrap gap-1.5">
         <CheckPill ok={item.checks.deposit} label="보증금" />
         <CheckPill ok={item.checks.rent} label="월세" />
-        <CheckPill ok={item.checks.floor} label="1층" />
-        <CheckPill ok={item.checks.pyeong} label="4~10평" />
-        {item.noPremium ? (
-          <span className="inline-flex h-6 items-center gap-1 rounded-lg bg-blue-bg px-2 text-[11.5px] font-bold text-blue">
-            ✓ 무권리 표기
-          </span>
-        ) : (
-          <span className="inline-flex h-6 items-center rounded-lg bg-surface-2 px-2 text-[11.5px] font-semibold text-faint">
-            권리금 문의
-          </span>
+        <CheckPill ok={item.checks.floor} label="B1~2층" />
+        <CheckPill ok={premium.ok} label={premium.label} />
+        {nearestFacility && (
+          <a
+            href={nearestFacility.osmUrl}
+            target="_blank"
+            rel="noreferrer noopener"
+            className="inline-flex h-6 items-center rounded-lg bg-green-bg px-2 text-[11.5px] font-bold text-green"
+            title={`${nearestFacility.name} · ${nearestFacility.distanceM}m`}
+          >
+            ✓ 생활권 {nearestFacility.distanceM}m
+          </a>
         )}
       </div>
 
+      {nearestFacility && (
+        <p className="truncate text-[12px] font-medium text-green">
+          주변 시설 · {nearestFacility.name}
+        </p>
+      )}
+
       {/* 설명 */}
       {item.desc && <p className="clamp-2 text-[13px] leading-relaxed text-dim">{item.desc}</p>}
+
+      <button
+        type="button"
+        onClick={() => onHide(item)}
+        className="self-start text-[11.5px] font-semibold text-faint transition-colors hover:text-rose"
+      >
+        다신 보지 않음
+      </button>
 
       {/* 중복 표기 */}
       {dup && (

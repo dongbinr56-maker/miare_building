@@ -1,20 +1,42 @@
 {
   "regionSearchPrefix": "광산구",
-  "regions": ["신가동", "신창동", "하남동", "수완동"],
+  "regionCortarNo": "1233000000",
   "realEstateTypes": ["SG"],
   "tradeType": "B2",
   "maxPagesPerRegion": 60,
   "criteria": {
-    "depositMax": 500,
-    "rentMax": 45,
-    "pyeongMin": 4,
-    "pyeongMax": 10,
-    "requireFirstFloor": true
+    "depositMin": 500,
+    "depositMax": 1000,
+    "rentMax": 60,
+    "floorMin": -1,
+    "floorMax": 2,
+    "requireNoPremium": true
+  },
+  "nearbyFacilities": {
+    "enabled": true,
+    "nearbyRadiusM": 800,
+    "allowApproximateCoordinates": false,
+    "prefetchBbox": [35.0690855, 126.6447028, 35.2588841, 126.8604112],
+    "cachePath": "collector/.cache/nearby_facilities.json",
+    "cacheTtlHours": 24,
+    "requestTimeoutSeconds": 70,
+    "requestsPerEndpoint": 2,
+    "retryDelaySeconds": 5,
+    "rateLimitRetryDelaySeconds": 30,
+    "overpassTileSpanDegrees": 0.1,
+    "overpassMaxTiles": 36,
+    "overpassTileDelaySeconds": 1,
+    "maxEvidencePerListing": 8
   },
   "output": "web/public/data/listings.json",
   "daangn": {
     "enabled": true,
     "maxPagesPerRegion": 30,
-    "articleHash": "e0cdf7eab9f342cf735fb8951d9dc0b771418964e241bd59ed4bec84d43e019a"
+    "articleHash": "e0cdf7eab9f342cf735fb8951d9dc0b771418964e241bd59ed4bec84d43e019a",
+    "exactLocationEnabled": true,
+    "exactLocationLevels": ["full", "near"],
+    "maxArticleDetailRequestsPerRun": 120,
+    "maxComplexDetailRequestsPerRun": 80,
+    "detailRequestDelaySeconds": 0.3
   }
 }

@@ -13,3 +13,22 @@ __pycache__/
 # 로컬 산출물
 collector/.cache/
 *.log
+*.log.*
+*.har
+.wrangler/
+test-results/
+playwright-report/
+blob-report/
+
+# 정확 주소·좌표가 포함될 수 있는 수집 데이터/로컬 백업
+# 운영 데이터는 Cloudflare KV에만 저장하고 Git과 Pages 정적 빌드에는 포함하지 않는다.
+web/public/data/listings.json
+web/public/data/listings-*.json
+web/public/data/*.local.json
+.private/
+
+# 로컬 비밀값
+.dev.vars
+.dev.vars.*
+.env
+.env.*

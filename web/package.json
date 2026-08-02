@@ -5,9 +5,11 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "build": "tsc -b && vite build",
+    "build": "tsc -b && npm run typecheck:functions && vite build",
+    "typecheck:functions": "tsc --noEmit -p functions/tsconfig.json",
     "lint": "oxlint",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "deploy": "npm run build && wrangler pages deploy dist --project-name snapspot-studio-finder --branch main"
   },
   "dependencies": {
     "@gsap/react": "^2.1.2",
@@ -21,12 +23,14 @@
     "tailwindcss": "^4.3.2"
   },
   "devDependencies": {
+    "@cloudflare/workers-types": "^5.20260801.1",
     "@types/node": "^24.13.2",
     "@types/react": "^19.2.17",
     "@types/react-dom": "^19.2.3",
     "@vitejs/plugin-react": "^6.0.3",
     "oxlint": "^1.71.0",
     "typescript": "~6.0.2",
-    "vite": "^8.1.1"
+    "vite": "^8.1.1",
+    "wrangler": "^4.118.0"
   }
 }

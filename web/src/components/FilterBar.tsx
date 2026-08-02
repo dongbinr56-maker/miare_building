@@ -1,4 +1,5 @@
-import type { RegionCount } from '../types'
+import { useEffect, useMemo } from 'react'
+import type { Criteria, RegionCount } from '../types'
 
 export type LevelFilter = 'full' | 'nearUp' | 'all'
 export type SortKey = 'reco' | 'rentAsc' | 'depositAsc' | 'pyeongAsc' | 'recent'
@@ -7,7 +8,7 @@ export interface Filters {
   dongs: string[]
   sources: string[]
   level: LevelFilter
-  firstFloorOnly: boolean
+  targetFloorOnly: boolean
   noPremiumOnly: boolean
   newOnly: boolean
   favOnly: boolean
@@ -59,36 +60,52 @@ function Chip({
 
 export function FilterBar({
   regions,
+  criteria,
   filters,
   onChange,
   favCount,
 }: {
   regions: RegionCount[]
+  criteria: Criteria
   filters: Filters
   onChange: (f: Filters) => void
   favCount: number
 }) {
   const set = (patch: Partial<Filters>) => onChange({ ...filters, ...patch })
+  const availableRegions = useMemo(
+    () => regions.filter((region) => region.count > 0),
+    [regions],
+  )
+  const selectedDong = filters.dongs[0] ?? ''
+  const selectedDongExists = !selectedDong || availableRegions.some((region) => region.name === selectedDong)
+  const safeSelectedDong = selectedDongExists ? selectedDong : ''
 
-  const toggleDong = (name: string) => {
-    const has = filters.dongs.includes(name)
-    set({ dongs: has ? filters.dongs.filter((d) => d !== name) : [...filters.dongs, name] })
-  }
+  // 새 수집에서 현재 선택한 동의 적합 매물이 0건이 되면
+  // 옵션과 필터 상태를 함께 '광산구 전체'로 복구한다.
+  useEffect(() => {
+    if (!selectedDong || selectedDongExists) return
+    onChange({ ...filters, dongs: [] })
+  }, [filters, onChange, selectedDong, selectedDongExists])
 
   return (
     <div className="glass sticky top-0 z-20 -mx-4 border-b border-line-soft px-4 py-3.5 md:-mx-6 md:px-6">
       <div className="mx-auto flex max-w-6xl flex-col gap-2.5">
-        {/* 1행: 동 선택 + 검색 */}
+        {/* 1행: 광산구 전체 법정동 선택 + 검색 */}
         <div className="flex flex-wrap items-center gap-2">
-          <Chip active={filters.dongs.length === 0} onClick={() => set({ dongs: [] })}>
-            전체 동
-          </Chip>
-          {regions.map((r) => (
-            <Chip key={r.name} active={filters.dongs.includes(r.name)} onClick={() => toggleDong(r.name)}>
-              {r.name}
-              <span className="tnum ml-1 text-[11px] opacity-60">{r.count}</span>
-            </Chip>
-          ))}
+          <label className="sr-only" htmlFor="dong-filter">법정동 선택</label>
+          <select
+            id="dong-filter"
+            value={safeSelectedDong}
+            onChange={(event) => set({ dongs: event.target.value ? [event.target.value] : [] })}
+            className="h-9 min-w-[170px] rounded-full bg-surface px-3.5 text-[13px] font-semibold text-dim shadow-toss outline-none transition-all hover:text-ink focus:ring-2 focus:ring-blue/40"
+          >
+            <option value="">광산구 전체 · {regions.reduce((sum, region) => sum + region.count, 0)}</option>
+            {availableRegions.map((region) => (
+              <option key={region.name} value={region.name}>
+                {region.name} · {region.count}
+              </option>
+            ))}
+          </select>
           <div className="ml-auto min-w-[140px] flex-1 md:max-w-[240px]">
             <input
               value={filters.query}
@@ -130,11 +147,13 @@ export function FilterBar({
             </Chip>
           ))}
 
-          <Chip active={filters.firstFloorOnly} onClick={() => set({ firstFloorOnly: !filters.firstFloorOnly })}>
-            1층만
+          <Chip active={filters.targetFloorOnly} onClick={() => set({ targetFloorOnly: !filters.targetFloorOnly })}>
+            {criteria.floorMin === -1 && criteria.floorMax === 2
+              ? 'B1~2층만'
+              : '대상 층수만'}
           </Chip>
           <Chip active={filters.noPremiumOnly} onClick={() => set({ noPremiumOnly: !filters.noPremiumOnly })}>
-            무권리 표기
+            무권리만
           </Chip>
           <Chip active={filters.newOnly} onClick={() => set({ newOnly: !filters.newOnly })}>
             신규만

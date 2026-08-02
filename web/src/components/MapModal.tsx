@@ -1,7 +1,12 @@
 import { useEffect, useRef } from 'react'
 import L from 'leaflet'
 import 'leaflet/dist/leaflet.css'
-import type { Listing } from '../types'
+import type { Listing, NearbyFacilityEvidence } from '../types'
+import {
+  buildFacilityOverlays,
+  listingRadiusCircle,
+  NEARBY_MAP_RADIUS_M,
+} from '../mapUtils'
 
 // 로고와 같은 핀+렌즈 모양의 커스텀 마커
 const PIN_SVG = `
@@ -17,6 +22,54 @@ const pinIcon = L.divIcon({
   iconSize: [40, 40],
   iconAnchor: [20, 38],
 })
+
+type FacilityCategory = 'school' | 'university' | 'apartment'
+
+const FACILITY_STYLE: Record<FacilityCategory, { color: string; fill: string; label: string }> = {
+  school: { color: '#16a34a', fill: '#22c55e', label: '학교' },
+  university: { color: '#7c3aed', fill: '#8b5cf6', label: '대학교' },
+  apartment: { color: '#d97706', fill: '#f59e0b', label: '아파트 단지' },
+}
+
+function facilityCategory(kind: NearbyFacilityEvidence['kind']): FacilityCategory {
+  if (kind === 'university') return 'university'
+  if (kind === 'apartment' || kind === 'apartment_complex') return 'apartment'
+  return 'school'
+}
+
+function facilityPopup(facility: NearbyFacilityEvidence): HTMLElement {
+  const category = facilityCategory(facility.kind)
+  const style = FACILITY_STYLE[category]
+  const wrapper = document.createElement('div')
+  wrapper.style.minWidth = '150px'
+
+  const title = document.createElement('strong')
+  title.textContent = facility.name
+  title.style.display = 'block'
+  title.style.marginBottom = '4px'
+  title.style.color = '#191f28'
+  wrapper.appendChild(title)
+
+  const detail = document.createElement('span')
+  detail.textContent = `${style.label} · 매물에서 ${facility.distanceM.toLocaleString()}m`
+  detail.style.display = 'block'
+  detail.style.color = '#6b7684'
+  detail.style.fontSize = '12px'
+  wrapper.appendChild(detail)
+
+  const link = document.createElement('a')
+  link.href = `https://www.openstreetmap.org/${facility.osmType}/${facility.osmId}`
+  link.target = '_blank'
+  link.rel = 'noreferrer noopener'
+  link.textContent = 'OpenStreetMap에서 보기 ↗'
+  link.style.display = 'inline-block'
+  link.style.marginTop = '7px'
+  link.style.color = '#3182f6'
+  link.style.fontSize = '12px'
+  link.style.fontWeight = '700'
+  wrapper.appendChild(link)
+  return wrapper
+}
 
 function fmtMan(v: number | null): string {
   return v === null ? '—' : v.toLocaleString()
@@ -51,13 +104,13 @@ export function MapModal({
   // Leaflet 지도 생성/정리
   useEffect(() => {
     if (!item || !mapRef.current) return
-    const lat = Number(item.lat)
-    const lon = Number(item.lon)
-    if (!Number.isFinite(lat) || !Number.isFinite(lon)) return
+    const listingCircle = listingRadiusCircle(item.lat, item.lon)
+    if (!listingCircle) return
+    const [lat, lon] = listingCircle.center
 
     const map = L.map(mapRef.current, {
       center: [lat, lon],
-      zoom: 17,
+      zoom: 15,
       zoomControl: true,
       attributionControl: true,
       scrollWheelZoom: true,
@@ -66,7 +119,59 @@ export function MapModal({
       attribution: '&copy; OpenStreetMap &copy; CARTO',
       maxZoom: 20,
     }).addTo(map)
-    L.marker([lat, lon], { icon: pinIcon }).addTo(map)
+
+    // 매물을 중심으로 생활권 기준 반경 800m를 항상 표시한다.
+    const radiusCircle = L.circle([lat, lon], {
+      radius: listingCircle.radiusM,
+      color: '#3182f6',
+      fillColor: '#3182f6',
+      fillOpacity: 0.045,
+      opacity: 0.8,
+      weight: 2,
+      dashArray: '7 6',
+      interactive: false,
+    }).addTo(map)
+
+    const facilityLayer = L.layerGroup().addTo(map)
+    for (const facility of item.nearbyFacilities ?? []) {
+      const [overlay] = buildFacilityOverlays([facility])
+      if (!overlay) continue
+      const category = facilityCategory(facility.kind)
+      const style = FACILITY_STYLE[category]
+
+      if (overlay.type === 'polygon') {
+        const rings: L.LatLngTuple[][] = overlay.rings.map((ring) => (
+          ring.map(([ringLat, ringLon]) => [ringLat, ringLon])
+        ))
+        // 한 시설의 outer/inner ring을 한 번에 전달해야 inner ring의 hole이 보존된다.
+        L.polygon(rings, {
+          color: style.color,
+          fillColor: style.fill,
+          fillOpacity: 0.2,
+          opacity: 0.9,
+          weight: 2,
+        })
+          .bindPopup(() => facilityPopup(facility), { maxWidth: 260 })
+          .addTo(facilityLayer)
+        continue
+      }
+
+      L.circleMarker([overlay.position[0], overlay.position[1]], {
+        radius: 7,
+        color: style.color,
+        fillColor: style.fill,
+        fillOpacity: 0.8,
+        opacity: 1,
+        weight: 2,
+      })
+        .bindPopup(() => facilityPopup(facility), { maxWidth: 260 })
+        .addTo(facilityLayer)
+    }
+
+    const tooltip = document.createElement('span')
+    tooltip.textContent = item.roadAddress || item.jibunAddress || `${item.dong} 매물 위치`
+    L.marker([lat, lon], { icon: pinIcon, zIndexOffset: 1000 }).bindTooltip(tooltip).addTo(map)
+    map.fitBounds(radiusCircle.getBounds(), { padding: [24, 24], maxZoom: 16 })
 
     return () => {
       map.remove()
@@ -75,9 +180,16 @@ export function MapModal({
 
   if (!item) return null
 
+  const mapLabel = item.roadAddress || item.jibunAddress || `${item.dong} ${item.pyeong ?? ''}평 상가`.trim()
   const kakaoUrl = `https://map.kakao.com/link/map/${encodeURIComponent(
-    `${item.dong} ${item.pyeong ?? ''}평 상가`.trim(),
+    mapLabel,
   )},${item.lat},${item.lon}`
+  const locationText = item.locationPrecision === 'building'
+    ? `${item.roadAddress || item.jibunAddress} · 공개 구조화 데이터의 연결 건물 위치`
+    : item.locationPrecision === 'complex'
+      ? `${item.roadAddress || item.jibunAddress || item.dong} · 연결 단지 중심 위치`
+      : '위치는 대략적일 수 있어요 · 정확한 주소는 중개사무소에 확인'
+  const facilityCount = buildFacilityOverlays(item.nearbyFacilities).length
 
   return (
     <div
@@ -116,13 +228,41 @@ export function MapModal({
           </button>
         </div>
 
-        {/* 지도 */}
-        <div ref={mapRef} className="h-[46vh] min-h-[280px] w-full" />
+        {/* 지도 + 범례 */}
+        <div className="relative">
+          <div
+            ref={mapRef}
+            role="img"
+            aria-label={`매물 중심 ${NEARBY_MAP_RADIUS_M}m 반경과 주변 시설 ${facilityCount}곳 지도`}
+            className="h-[46vh] min-h-[280px] w-full"
+          />
+          <div className="pointer-events-none absolute right-2 bottom-2 z-[500] rounded-xl bg-white/94 px-3 py-2 text-[10.5px] font-semibold text-dim shadow-toss backdrop-blur-sm">
+            <div className="mb-1.5 font-bold text-ink">지도 범례 · 시설 {facilityCount}곳</div>
+            <div className="grid grid-cols-2 gap-x-3 gap-y-1">
+              <span className="inline-flex items-center gap-1.5">
+                <i className="h-2.5 w-2.5 rounded-full border-2 border-blue bg-blue/15" />
+                800m 반경
+              </span>
+              <span className="inline-flex items-center gap-1.5">
+                <i className="h-2.5 w-2.5 rounded-sm border-2 border-[#16a34a] bg-[#22c55e]/25" />
+                학교
+              </span>
+              <span className="inline-flex items-center gap-1.5">
+                <i className="h-2.5 w-2.5 rounded-sm border-2 border-[#7c3aed] bg-[#8b5cf6]/25" />
+                대학교
+              </span>
+              <span className="inline-flex items-center gap-1.5">
+                <i className="h-2.5 w-2.5 rounded-sm border-2 border-[#d97706] bg-[#f59e0b]/25" />
+                아파트
+              </span>
+            </div>
+          </div>
+        </div>
 
         {/* 푸터 액션 */}
         <div className="flex flex-wrap items-center gap-2 px-5 py-4">
           <span className="mr-auto text-[12px] font-medium text-faint">
-            위치는 대략적일 수 있어요 · 정확한 주소는 중개사무소에 확인
+            {locationText}
           </span>
           <a
             href={kakaoUrl}

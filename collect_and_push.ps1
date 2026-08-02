@@ -1,6 +1,6 @@
-﻿# 로컬 매물 수집 → 커밋 → 푸시. 작업 스케줄러 "MiareCollect"가 collect_and_push.bat을 통해 하루 2회 실행.
+﻿# 레거시 수동 실행용: 로컬 매물 수집 → 커밋 → 푸시. 예약 작업에서는 더 이상 사용하지 않는다.
 # 네이버가 부동산 호스트(new.land 등)를 해외 데이터센터 IP에서 차단하므로 수집은 로컬(한국 IP)에서만 가능하다.
-# 두 대 이상의 PC(내 PC + 동생 PC)가 같은 작업을 등록해 두므로, 동시 수집/푸시 충돌을 안전하게 처리한다.
+# 운영 갱신은 refresh_agent.py/KV 경로를 사용한다. 이 파일은 진단·레거시 호환용이다.
 # 주의: 이 파일은 UTF-8 BOM 인코딩이어야 한다 (Windows PowerShell 5.1의 한글 처리).
 $ErrorActionPreference = "Continue"
 Set-Location (Split-Path -Parent $MyInvocation.MyCommand.Path)

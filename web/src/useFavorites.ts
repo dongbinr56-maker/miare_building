@@ -19,9 +19,43 @@ export interface FavStore {
 function load(): Record<string, Listing> {
   try {
     const raw = localStorage.getItem(KEY)
-    return raw ? JSON.parse(raw) : {}
+    const parsed = raw ? JSON.parse(raw) : {}
+    if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) return {}
+    return Object.fromEntries(
+      Object.entries(parsed)
+        .filter((entry): entry is [string, Listing] => Boolean(entry[1] && typeof entry[1] === 'object'))
+        .map(([id, item]) => [id, migratePremiumSnapshot(item)]),
+    )
   } catch {
     return {}
+  }
+}
+
+/**
+ * 구버전 즐겨찾기는 근거 없는 noPremium=true를 저장했다. 금액·상태 필드가
+ * 없는 스냅샷은 무권리로 승계하지 않고 확인 필요로 보수 마이그레이션한다.
+ */
+function migratePremiumSnapshot(item: Listing): Listing {
+  const amount = typeof item.premiumMoney === 'number' && Number.isFinite(item.premiumMoney)
+    ? item.premiumMoney
+    : null
+  const status = item.premiumStatus === 'present' || item.premiumStatus === 'none' || item.premiumStatus === 'unknown'
+    ? item.premiumStatus
+    : amount !== null && amount > 0
+      ? 'present'
+      : amount === 0
+        ? 'none'
+        : 'unknown'
+  const checks = { ...item.checks, premium: status === 'none' }
+  const passed = ['deposit', 'rent', 'floor', 'premium']
+    .filter((key) => Boolean(checks[key as keyof typeof checks])).length
+  return {
+    ...item,
+    premiumMoney: amount,
+    premiumStatus: status,
+    noPremium: status === 'none',
+    checks,
+    matchLevel: passed === 4 ? 'full' : passed === 3 ? 'near' : 'low',
   }
 }
 

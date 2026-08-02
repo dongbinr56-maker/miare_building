@@ -1,0 +1,17 @@
+{
+  "$schema": "./node_modules/wrangler/config-schema.json",
+  "name": "snapspot-studio-finder",
+  "pages_build_output_dir": "./dist",
+  "compatibility_date": "2026-08-02",
+  "vars": {
+    "GITHUB_REPOSITORY": "dongbinr56-maker/miare_building",
+    "GITHUB_WORKFLOW_ID": "refresh.yml"
+  },
+  "kv_namespaces": [
+    {
+      "binding": "REFRESH_KV",
+      "id": "d07c1a375af04973b68fd099f0991b9b",
+      "preview_id": "f654540e520a438eb53f8387328f8681"
+    }
+  ]
+}

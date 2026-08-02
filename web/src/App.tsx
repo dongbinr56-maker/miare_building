@@ -5,12 +5,15 @@ import { StatsRow } from './components/StatsRow'
 import { FilterBar, type Filters } from './components/FilterBar'
 import { ListingCard } from './components/ListingCard'
 import { MapModal } from './components/MapModal'
+import { RefreshButton } from './components/RefreshButton'
+import { HiddenListingsManager } from './components/HiddenListingsManager'
+import { useHiddenListings } from './useHiddenListings'
 import DotGrid from './components/DotGrid'
 import SplitText from './components/reactbits/SplitText'
 import ShinyText from './components/reactbits/ShinyText'
 import ClickSpark from './components/reactbits/ClickSpark'
 import AnimatedContent from './components/reactbits/AnimatedContent'
-import type { Listing } from './types'
+import type { Criteria, Listing } from './types'
 
 const PAGE_SIZE = 60
 
@@ -18,7 +21,7 @@ const DEFAULT_FILTERS: Filters = {
   dongs: [],
   sources: [],
   level: 'nearUp',
-  firstFloorOnly: false,
+  targetFloorOnly: false,
   noPremiumOnly: false,
   newOnly: false,
   favOnly: false,
@@ -26,7 +29,7 @@ const DEFAULT_FILTERS: Filters = {
   sort: 'reco',
 }
 
-function applyFilters(listings: Listing[], f: Filters): Listing[] {
+function applyFilters(listings: Listing[], f: Filters, criteria: Criteria): Listing[] {
   let out = listings
 
   // 즐겨찾기 보기에서는 매치 레벨 필터를 건너뛴다(찜한 건 다 보여줌)
@@ -37,7 +40,11 @@ function applyFilters(listings: Listing[], f: Filters): Listing[] {
 
   if (f.dongs.length > 0) out = out.filter((x) => f.dongs.includes(x.dong))
   if (f.sources.length > 0) out = out.filter((x) => f.sources.includes(x.source))
-  if (f.firstFloorOnly) out = out.filter((x) => x.floor === 1)
+  if (f.targetFloorOnly) {
+    const floorMin = criteria.floorMin ?? (criteria.requireFirstFloor ? 1 : Number.NEGATIVE_INFINITY)
+    const floorMax = criteria.floorMax ?? (criteria.requireFirstFloor ? 1 : Number.POSITIVE_INFINITY)
+    out = out.filter((x) => x.floor !== null && floorMin <= x.floor && x.floor <= floorMax)
+  }
   if (f.noPremiumOnly) out = out.filter((x) => x.noPremium)
   if (f.newOnly) out = out.filter((x) => x.isNew)
 
@@ -94,18 +101,25 @@ function SkeletonGrid() {
 }
 
 export default function App() {
-  const { data, error, loading } = useListings()
+  const { data, error, loading, reload } = useListings()
   const fav = useFavorites()
+  const hidden = useHiddenListings()
+  const isHidden = hidden.isHidden
   const [filters, setFilters] = useState<Filters>(DEFAULT_FILTERS)
   const [visible, setVisible] = useState(PAGE_SIZE)
   const [mapItem, setMapItem] = useState<Listing | null>(null)
 
   const filtered = useMemo(() => {
     if (!data) return []
-    // 즐겨찾기 보기: 저장된 스냅샷을 소스로(매물이 내려가도 유지)
-    const source = filters.favOnly ? Object.values(fav.snapshots) : data.listings
-    return applyFilters(source, filters)
-  }, [data, filters, fav.snapshots])
+    // 즐겨찾기 매물이 현재 데이터에도 있으면 엄격한 최신 판정을 우선한다.
+    // 내려간 매물만 보수 마이그레이션된 로컬 스냅샷으로 남긴다.
+    const currentById = new Map(data.listings.map((item) => [item.id, item]))
+    const favorites = Object.values(fav.snapshots)
+      .map((snapshot) => currentById.get(snapshot.id) ?? snapshot)
+    const source = (filters.favOnly ? favorites : data.listings)
+      .filter((item) => !isHidden(item))
+    return applyFilters(source, filters, data.criteria)
+  }, [data, filters, fav.snapshots, isHidden])
 
   const setFiltersReset = (f: Filters) => {
     setFilters(f)
@@ -157,12 +171,28 @@ export default function App() {
           {data && (
             <div className="ml-auto text-right">
               <div className="tnum text-[12.5px] font-medium text-faint">{fmtUpdated(data.updatedAt)}</div>
+              <div className="mt-2 flex flex-wrap justify-end gap-2">
+                <HiddenListingsManager
+                  entries={hidden.entries}
+                  onRestore={hidden.restore}
+                  onRestoreAll={hidden.restoreAll}
+                />
+                <RefreshButton onUpdated={reload} />
+              </div>
               <div className="mt-1.5 flex flex-wrap justify-end gap-1.5">
                 {[
-                  `보증금 ≤ ${data.criteria.depositMax}만`,
-                  `월세 ≤ ${data.criteria.rentMax}만`,
-                  '1층',
-                  `${data.criteria.pyeongMin}~${data.criteria.pyeongMax}평`,
+                  data.criteria.depositMin !== undefined
+                    ? `보증금 ${data.criteria.depositMin}~${data.criteria.depositMax}만`
+                    : `보증금 ≤ ${data.criteria.depositMax}만`,
+                  data.criteria.rentMaxExclusive !== undefined
+                    ? `월세 < ${data.criteria.rentMaxExclusive}만 · 관리비 별도`
+                    : `월세 ≤ ${data.criteria.rentMax}만`,
+                  data.criteria.floorMin === -1 && data.criteria.floorMax === 2
+                    ? 'B1~2층'
+                    : '대상 층수',
+                  '무권리 필수',
+                  `학교·아파트 ${data.stats.nearby?.radiusM ?? 800}m 이내`,
+                  '면적·주차 무관',
                 ].map((c) => (
                   <span
                     key={c}
@@ -187,7 +217,13 @@ export default function App() {
       {/* 필터 (sticky) */}
       {data && (
         <div className="relative z-10 mx-auto max-w-6xl px-4 md:px-6">
-          <FilterBar regions={data.regions} filters={filters} onChange={setFiltersReset} favCount={fav.count} />
+          <FilterBar
+            regions={data.regions}
+            criteria={data.criteria}
+            filters={filters}
+            onChange={setFiltersReset}
+            favCount={fav.count}
+          />
         </div>
       )}
 
@@ -221,7 +257,7 @@ export default function App() {
                   <>
                     <p className="text-[16px] font-bold text-ink">조건에 맞는 매물이 없어요</p>
                     <p className="mt-2 text-[13.5px] text-dim">
-                      필터를 넓혀보세요 — 매물은 주기적으로 자동 수집돼요.
+                      필터를 넓히거나 상단의 매물 새로고침을 눌러 최신 매물을 확인해 보세요.
                     </p>
                   </>
                 )}
@@ -242,6 +278,7 @@ export default function App() {
                     isFav={fav.isFav(item.id)}
                     onToggleFav={fav.toggle}
                     onOpenMap={setMapItem}
+                    onHide={hidden.hide}
                   />
                 ))}
               </div>
@@ -264,7 +301,7 @@ export default function App() {
       <footer className="relative z-10 mx-auto max-w-6xl px-4 pt-4 pb-10 md:px-6">
         <AnimatedContent distance={30} duration={0.7} threshold={0.2}>
           <div className="border-t border-line-soft pt-5 text-center text-[12px] leading-relaxed text-faint">
-            개인용 비공식 도구 · 데이터 출처: 네이버 부동산 · 당근부동산 (자동 수집) · 가격/권리금은 반드시 중개사에 직접 확인하세요
+            개인용 비공식 도구 · 데이터 출처: 네이버 부동산 · 당근부동산 (요청 시 수집) · 가격/권리금은 반드시 중개사에 직접 확인하세요
           </div>
         </AnimatedContent>
       </footer>
