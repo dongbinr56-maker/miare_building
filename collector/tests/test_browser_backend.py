@@ -4,6 +4,8 @@ import unittest
 from pathlib import Path
 from unittest.mock import MagicMock, patch
 
+from playwright.sync_api import Error as PlaywrightError
+
 
 COLLECTOR_DIR = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(COLLECTOR_DIR))
@@ -61,6 +63,50 @@ class BrowserBackendTests(unittest.TestCase):
     def test_partial_cloudflare_credentials_are_rejected(self):
         with self.assertRaises(RuntimeError):
             launch_naver_browser(MagicMock())
+
+    @patch.dict(
+        os.environ,
+        {
+            "CLOUDFLARE_ACCOUNT_ID": "a" * 32,
+            "CLOUDFLARE_BROWSER_TOKEN": "browser-secret",
+        },
+        clear=True,
+    )
+    @patch("collect.time.sleep")
+    def test_cloudflare_rate_limit_is_retried(self, sleep):
+        playwright = MagicMock()
+        browser = MagicMock()
+        playwright.chromium.connect_over_cdp.side_effect = [
+            PlaywrightError("429 Too Many Requests: Rate limit exceeded"),
+            browser,
+        ]
+
+        result = launch_naver_browser(playwright)
+
+        self.assertEqual(result[0], browser)
+        self.assertEqual(playwright.chromium.connect_over_cdp.call_count, 2)
+        sleep.assert_called_once_with(5)
+
+    @patch.dict(
+        os.environ,
+        {
+            "CLOUDFLARE_ACCOUNT_ID": "a" * 32,
+            "CLOUDFLARE_BROWSER_TOKEN": "browser-secret",
+        },
+        clear=True,
+    )
+    @patch("collect.time.sleep")
+    def test_cloudflare_auth_error_is_not_retried(self, sleep):
+        playwright = MagicMock()
+        playwright.chromium.connect_over_cdp.side_effect = PlaywrightError(
+            "401 Unauthorized"
+        )
+
+        with self.assertRaises(PlaywrightError):
+            launch_naver_browser(playwright)
+
+        playwright.chromium.connect_over_cdp.assert_called_once()
+        sleep.assert_not_called()
 
 
 if __name__ == "__main__":

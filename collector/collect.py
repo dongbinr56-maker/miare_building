@@ -22,7 +22,7 @@ import sys
 import time
 from datetime import datetime, timezone, timedelta
 
-from playwright.sync_api import sync_playwright
+from playwright.sync_api import Error as PlaywrightError, sync_playwright
 
 from rules import (
     audit_premium_classifications,
@@ -57,6 +57,7 @@ async ({ url, token }) => {
 """
 
 CLOUDFLARE_ACCOUNT_ID_RE = re.compile(r"^[0-9a-fA-F]{32}$")
+BROWSER_RUN_RETRY_DELAYS = (5, 15, 30, 60)
 
 
 def log(msg):
@@ -81,12 +82,37 @@ def launch_naver_browser(playwright):
             "wss://api.cloudflare.com/client/v4/accounts/"
             f"{account_id}/browser-rendering/devtools/browser?keep_alive=600000"
         )
-        log("Cloudflare Browser Run 원격 Chromium 연결 중...")
-        browser = playwright.chromium.connect_over_cdp(
-            endpoint,
-            headers={"Authorization": f"Bearer {browser_token}"},
-            timeout=60_000,
-        )
+        browser = None
+        for attempt in range(len(BROWSER_RUN_RETRY_DELAYS) + 1):
+            log(
+                "Cloudflare Browser Run 원격 Chromium 연결 중..."
+                f" ({attempt + 1}/{len(BROWSER_RUN_RETRY_DELAYS) + 1})"
+            )
+            try:
+                browser = playwright.chromium.connect_over_cdp(
+                    endpoint,
+                    headers={"Authorization": f"Bearer {browser_token}"},
+                    timeout=60_000,
+                )
+                break
+            except PlaywrightError as error:
+                message = str(error).lower()
+                retryable = (
+                    "429" in message
+                    or "rate limit" in message
+                    or "too many requests" in message
+                    or "502" in message
+                    or "503" in message
+                    or "504" in message
+                )
+                if not retryable or attempt >= len(BROWSER_RUN_RETRY_DELAYS):
+                    raise
+                delay = BROWSER_RUN_RETRY_DELAYS[attempt]
+                log(f"Browser Run 일시 오류, {delay}초 후 재시도합니다.")
+                time.sleep(delay)
+
+        if browser is None:  # pragma: no cover - loop either connects or raises
+            raise RuntimeError("Cloudflare Browser Run 연결 결과가 없습니다.")
         # Browser Run의 기본 컨텍스트는 일반 네이버 홈으로 리디렉션될 수 있다.
         # 로컬 수집기와 동일한 UA/locale을 가진 격리 컨텍스트를 명시적으로 만들어
         # new.land가 사용하는 API Authorization 요청을 안정적으로 포착한다.

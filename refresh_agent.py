@@ -453,28 +453,36 @@ def process_once(kv: KvClient, expected_job_id: str | None = None) -> bool:
         _seed_previous_listings(kv)
         previous_nearby_fetched_at = _seed_nearby_cache(kv)
     except Exception as error:
+        failure_message = f"이전 수집 데이터 준비에 실패했습니다. {str(error)[:300]}"
         kv.put_json(
             STATE_KEY,
             {
                 **claimed,
                 "status": "failed",
                 "completedAt": _iso_now(),
-                "message": f"이전 수집 데이터 준비에 실패했습니다. {str(error)[:300]}",
+                "message": failure_message,
             },
         )
+        if expected_job_id:
+            raise RuntimeError(failure_message) from error
         return True
 
     ok, detail = _run_collection()
     if not ok:
+        failure_message = f"매물 수집에 실패했습니다. {detail}"
         kv.put_json(
             STATE_KEY,
             {
                 **claimed,
                 "status": "failed",
                 "completedAt": _iso_now(),
-                "message": f"매물 수집에 실패했습니다. {detail}",
+                "message": failure_message,
             },
         )
+        # A workflow-dispatched one-shot run must fail visibly in GitHub Actions.
+        # The long-running local daemon keeps polling after recording the failure.
+        if expected_job_id:
+            raise RuntimeError(failure_message)
         return True
 
     try:

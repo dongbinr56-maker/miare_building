@@ -162,6 +162,28 @@ class RefreshAgentTests(unittest.TestCase):
         self.assertEqual(kv.values[refresh_agent.STATE_KEY]["status"], "failed")
         self.assertNotIn(refresh_agent.LISTINGS_KEY, kv.values)
 
+    def test_failed_dispatched_collector_fails_the_workflow(self):
+        kv = FakeKv(
+            {
+                refresh_agent.STATE_KEY: {
+                    "jobId": "job-dispatched-failure",
+                    "status": "pending",
+                    "requestedAt": "2026-08-02T12:00:00Z",
+                }
+            }
+        )
+        with (
+            patch.object(refresh_agent, "_run_collection", return_value=(False, "exit 1")),
+            self.assertRaisesRegex(RuntimeError, "매물 수집에 실패"),
+        ):
+            refresh_agent.process_once(
+                kv,
+                expected_job_id="job-dispatched-failure",
+            )
+
+        self.assertEqual(kv.values[refresh_agent.STATE_KEY]["status"], "failed")
+        self.assertNotIn(refresh_agent.LISTINGS_KEY, kv.values)
+
     def test_expected_job_id_must_match_pending_state(self):
         kv = FakeKv(
             {
