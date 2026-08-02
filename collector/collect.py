@@ -32,6 +32,7 @@ from rules import (
 )
 from daangn import collect_daangn
 from dedupe import merge_duplicates
+from change_history import build_change_history
 from nearby import (
     NEARBY_RADIUS_M,
     filter_by_nearby_facilities,
@@ -359,11 +360,14 @@ def main():
     )
 
     # 이전 데이터의 firstSeen 맵 (신규 매물 감지용)
+    previous_data = None
     prev_first_seen = {}
     if os.path.exists(out_path):
         try:
             with open(out_path, encoding="utf-8") as f:
                 prev = json.load(f)
+            if isinstance(prev, dict):
+                previous_data = prev
             for it in prev.get("listings", []):
                 if it.get("firstSeen"):
                     key = it["id"]
@@ -494,6 +498,32 @@ def main():
         f"(반경 {nearby_stats.get('radiusM', NEARBY_RADIUS_M)}m)"
     )
 
+    # 직전 최종 스냅샷과 이번 최종 스냅샷을 비교한다. 병합 ID가 하나라도
+    # 겹치면 동일 매물로 보고, 새 번호 재등록은 주소/고신뢰 좌표와 호실 성격이
+    # 유일하게 일치할 때만 보수적으로 추정한다.
+    updated_at = datetime.now(KST).isoformat(timespec="seconds")
+    change_history, previous_identity = build_change_history(
+        previous_data,
+        listings,
+        updated_at,
+    )
+    for item in listings:
+        previous_item = previous_identity.get(item.get("id"))
+        if previous_item and previous_item.get("firstSeen"):
+            item["firstSeen"] = previous_item["firstSeen"]
+        item["isNew"] = bool(
+            not change_history.get("baseline") and previous_item is None
+        )
+    change_counts = change_history.get("counts", {})
+    log(
+        "변경 이력: "
+        f"신규 {change_counts.get('new', 0)}건, "
+        f"가격 {change_counts.get('priceChanged', 0)}건, "
+        f"설명 {change_counts.get('descriptionChanged', 0)}건, "
+        f"사라짐 {change_counts.get('deleted', 0)}건, "
+        f"재등록 추정 {change_counts.get('relisted', 0)}건"
+    )
+
     # UI의 지역별 건수는 네이버 원본 수가 아니라 당근 포함·중복 병합 후의
     # 최종 매물 수와 일치해야 한다.
     final_region_counts = {r["name"]: 0 for r in regions}
@@ -511,7 +541,7 @@ def main():
                                  x["deposit"] if x["deposit"] is not None else 10**9))
 
     out = {
-        "updatedAt": datetime.now(KST).isoformat(timespec="seconds"),
+        "updatedAt": updated_at,
         "criteria": criteria,
         "tradeType": cfg["tradeType"],
         "realEstateTypes": cfg["realEstateTypes"],
@@ -529,6 +559,7 @@ def main():
             "premiumAudit": premium_audit,
             "nearby": nearby_stats,
         },
+        "changeHistory": change_history,
         "listings": listings,
     }
 

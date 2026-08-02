@@ -35,10 +35,12 @@ class FakeKv:
 
 
 def listing_data():
+    updated_at = "2026-08-02T21:00:00+09:00"
     return {
-        "updatedAt": "2026-08-02T21:00:00+09:00",
+        "updatedAt": updated_at,
         "criteria": dict(refresh_agent.EXPECTED_CRITERIA),
         "stats": {
+            "new": 0,
             "nearby": {
                 "input": 1,
                 "kept": 1,
@@ -60,11 +62,27 @@ def listing_data():
             }
         },
         "regions": [],
+        "changeHistory": {
+            "version": 1,
+            "baseline": True,
+            "comparedAt": None,
+            "currentAt": updated_at,
+            "counts": {
+                "new": 0,
+                "priceChanged": 0,
+                "descriptionChanged": 0,
+                "deleted": 0,
+                "relisted": 0,
+            },
+            "events": [],
+        },
         "listings": [
             {
                 "id": "naver:1",
                 "source": "naver",
                 "mergedListingIds": ["naver:1"],
+                "firstSeen": "2026-08-02",
+                "isNew": False,
                 "deposit": 500,
                 "rent": 60,
                 "floor": 1,
@@ -487,6 +505,51 @@ class RefreshAgentTests(unittest.TestCase):
         missing["listings"][0]["nearbyFacilities"] = []
         with self.assertRaisesRegex(RuntimeError, "500m 생활권"):
             refresh_agent._validate_listings(json.dumps(missing).encode())
+
+    def test_upload_rejects_invalid_change_history(self):
+        missing = listing_data()
+        missing.pop("changeHistory")
+        with self.assertRaisesRegex(RuntimeError, "변경 이력"):
+            refresh_agent._validate_listings(json.dumps(missing).encode())
+
+        mismatched_time = listing_data()
+        mismatched_time["changeHistory"]["currentAt"] = "2026-08-01T00:00:00Z"
+        with self.assertRaisesRegex(RuntimeError, "변경 이력"):
+            refresh_agent._validate_listings(json.dumps(mismatched_time).encode())
+
+        bad_count = listing_data()
+        bad_count["changeHistory"]["baseline"] = False
+        bad_count["changeHistory"]["counts"]["new"] = 1
+        with self.assertRaisesRegex(RuntimeError, "카운터"):
+            refresh_agent._validate_listings(json.dumps(bad_count).encode())
+
+    def test_upload_rejects_is_new_and_first_seen_inconsistent_with_history(self):
+        inconsistent = listing_data()
+        inconsistent["listings"][0]["firstSeen"] = "not-a-date"
+        inconsistent["listings"][0]["isNew"] = "yes"
+        inconsistent["stats"]["new"] = 999
+
+        with self.assertRaisesRegex(RuntimeError, "신규|firstSeen|isNew"):
+            refresh_agent._validate_listings(json.dumps(inconsistent).encode())
+
+    def test_upload_rejects_listing_ids_shared_by_multiple_cards(self):
+        duplicated = listing_data()
+        second = json.loads(json.dumps(duplicated["listings"][0]))
+        second["id"] = "daangn:2"
+        second["source"] = "daangn"
+        second["mergedListingIds"] = ["daangn:2", "naver:1"]
+        duplicated["listings"].append(second)
+        duplicated["stats"]["nearby"]["kept"] = 2
+
+        with self.assertRaisesRegex(RuntimeError, "중복|ID"):
+            refresh_agent._validate_listings(json.dumps(duplicated).encode())
+
+    def test_upload_rejects_false_change_history_truncation(self):
+        not_truncated = listing_data()
+        not_truncated["changeHistory"]["truncated"] = True
+
+        with self.assertRaisesRegex(RuntimeError, "잘린|truncated|변경 이력"):
+            refresh_agent._validate_listings(json.dumps(not_truncated).encode())
 
 
 if __name__ == "__main__":

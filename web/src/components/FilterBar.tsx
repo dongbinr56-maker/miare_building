@@ -170,7 +170,9 @@ export function FilterBar({
             {favCount > 0 && <span className="tnum text-[11px] opacity-70">{favCount}</span>}
           </button>
 
+          <label className="sr-only" htmlFor="listing-sort">매물 정렬 기준</label>
           <select
+            id="listing-sort"
             value={filters.sort}
             onChange={(e) => set({ sort: e.target.value as SortKey })}
             className="ml-auto h-9 rounded-full bg-surface px-3.5 text-[13px] font-semibold text-dim shadow-toss outline-none transition-all hover:text-ink focus:ring-2 focus:ring-blue/40"

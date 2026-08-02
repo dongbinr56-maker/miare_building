@@ -69,6 +69,11 @@ jobs:
         working-directory: web
         run: npm ci --ignore-scripts
 
+      - name: Run collector and refresh safety tests
+        run: |
+          python -m unittest discover -s collector/tests -p 'test_*.py'
+          python -m unittest discover -s tests -p 'test_*.py'
+
       - name: Seed manual refresh state
         if: ${{ inputs.seed_state }}
         env:

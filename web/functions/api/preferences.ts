@@ -5,7 +5,7 @@ interface PreferencesEnv {
   REFRESH_KV: KVNamespace;
 }
 
-type PreferenceKind = "favorites" | "hidden" | "notes";
+type PreferenceKind = "favorites" | "hidden" | "notes" | "workspace";
 
 interface PreferenceEnvelope {
   version: 1;
@@ -19,14 +19,35 @@ interface NoteRecord {
   updatedAt: string;
 }
 
+type WorkflowStatus = "review" | "call" | "visit" | "hold" | "finalist" | "rejected";
+
+interface WorkflowRecord {
+  workflowId: string;
+  status: WorkflowStatus;
+  updatedAt: string;
+}
+
 const MAX_BODY_BYTES = 2 * 1024 * 1024;
 const MAX_NOTES_BODY_BYTES = 512 * 1024;
+const MAX_WORKSPACE_BODY_BYTES = 512 * 1024;
 const MAX_ENTRIES = 500;
 const MAX_NOTE_IDS = 2_000;
+const MAX_WORKFLOW_IDS = 2_000;
+const MAX_COMPARE_ENTRIES = 3;
+const MAX_MERGED_LISTING_IDS = 32;
 const MAX_NOTE_LENGTH = 1_000;
 const MAX_NOTE_BYTES = 4_096;
 const LISTING_ID_PATTERN = /^(?:naver|daangn):\d+$/;
 const NOTE_ID_PATTERN = /^[A-Za-z0-9][A-Za-z0-9_-]{0,127}$/;
+const WORKSPACE_ID_PATTERN = /^[A-Za-z0-9][A-Za-z0-9_-]{0,127}$/;
+const WORKFLOW_STATUSES = new Set<WorkflowStatus>([
+  "review",
+  "call",
+  "visit",
+  "hold",
+  "finalist",
+  "rejected",
+]);
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null && !Array.isArray(value);
@@ -34,7 +55,9 @@ function isRecord(value: unknown): value is Record<string, unknown> {
 
 function preferenceKind(request: Request): PreferenceKind | null {
   const kind = new URL(request.url).searchParams.get("kind");
-  return kind === "favorites" || kind === "hidden" || kind === "notes" ? kind : null;
+  return kind === "favorites" || kind === "hidden" || kind === "notes" || kind === "workspace"
+    ? kind
+    : null;
 }
 
 function isListingId(value: unknown): value is string {
@@ -148,16 +171,99 @@ function isNotesData(value: unknown): boolean {
   return true;
 }
 
+function isWorkflowRecord(value: unknown): value is WorkflowRecord {
+  if (!isRecord(value)) return false;
+  const keys = Object.keys(value);
+  return (
+    keys.length === 3 &&
+    keys.every((key) => key === "workflowId" || key === "status" || key === "updatedAt") &&
+    typeof value.workflowId === "string" &&
+    WORKSPACE_ID_PATTERN.test(value.workflowId) &&
+    typeof value.status === "string" &&
+    WORKFLOW_STATUSES.has(value.status as WorkflowStatus) &&
+    typeof value.updatedAt === "string" &&
+    value.updatedAt.length <= 64 &&
+    !Number.isNaN(Date.parse(value.updatedAt))
+  );
+}
+
+function isWorkspaceData(value: unknown): boolean {
+  if (!isRecord(value) || value.version !== 1 || !isRecord(value.workflow)) return false;
+  const keys = Object.keys(value);
+  if (
+    keys.length !== 3 ||
+    !keys.every((key) => key === "version" || key === "workflow" || key === "compareEntries") ||
+    !Array.isArray(value.compareEntries)
+  ) {
+    return false;
+  }
+
+  const workflowEntries = Object.entries(value.workflow);
+  if (
+    workflowEntries.length > MAX_WORKFLOW_IDS ||
+    !workflowEntries.every(([id, record]) => isListingId(id) && isWorkflowRecord(record))
+  ) {
+    return false;
+  }
+
+  // 같은 workflowId는 병합 카드의 플랫폼별 복제본이다. 모든 복제본은 완전히 같아야 한다.
+  const workflowSignatures = new Map<string, string>();
+  const workflowGroupSizes = new Map<string, number>();
+  for (const [, rawRecord] of workflowEntries) {
+    const record = rawRecord as WorkflowRecord;
+    const signature = `${record.status}\u0000${record.updatedAt}`;
+    const previous = workflowSignatures.get(record.workflowId);
+    if (previous !== undefined && previous !== signature) return false;
+    workflowSignatures.set(record.workflowId, signature);
+    const groupSize = (workflowGroupSizes.get(record.workflowId) ?? 0) + 1;
+    if (groupSize > MAX_MERGED_LISTING_IDS) return false;
+    workflowGroupSizes.set(record.workflowId, groupSize);
+  }
+
+  if (value.compareEntries.length > MAX_COMPARE_ENTRIES) return false;
+  const entryIds = new Set<string>();
+  const comparedListingIds = new Set<string>();
+  for (const entry of value.compareEntries) {
+    if (!isRecord(entry)) return false;
+    const entryKeys = Object.keys(entry);
+    if (
+      entryKeys.length !== 3 ||
+      !entryKeys.every((key) => key === "entryId" || key === "listingIds" || key === "addedAt") ||
+      typeof entry.entryId !== "string" ||
+      !WORKSPACE_ID_PATTERN.test(entry.entryId) ||
+      entryIds.has(entry.entryId) ||
+      !Array.isArray(entry.listingIds) ||
+      entry.listingIds.length === 0 ||
+      entry.listingIds.length > MAX_MERGED_LISTING_IDS ||
+      !entry.listingIds.every(isListingId) ||
+      new Set(entry.listingIds).size !== entry.listingIds.length ||
+      typeof entry.addedAt !== "string" ||
+      entry.addedAt.length > 64 ||
+      Number.isNaN(Date.parse(entry.addedAt))
+    ) {
+      return false;
+    }
+    entryIds.add(entry.entryId);
+    for (const listingId of entry.listingIds) {
+      if (comparedListingIds.has(listingId)) return false;
+      comparedListingIds.add(listingId);
+    }
+  }
+  return true;
+}
+
 function validPreferenceData(kind: PreferenceKind, value: unknown): boolean {
   if (kind === "favorites") return isFavoritesData(value);
   if (kind === "hidden") return isHiddenData(value);
-  return isNotesData(value);
+  if (kind === "notes") return isNotesData(value);
+  return isWorkspaceData(value);
 }
 
 function emptyPreference(kind: PreferenceKind): unknown {
   if (kind === "favorites") return {};
   if (kind === "hidden") return { version: 1, blockedIds: [], entries: [] };
-  return { version: 1, entries: {} };
+  if (kind === "notes") return { version: 1, entries: {} };
+  return { version: 1, workflow: {}, compareEntries: [] };
 }
 
 async function storageIdentity(
@@ -239,7 +345,11 @@ export const onRequestPut: PagesFunction<PreferencesEnv, string, AccessContextDa
     return noStoreJson({ error: "사용자 설정은 JSON 형식이어야 합니다." }, 415);
   }
 
-  const bodyLimit = kind === "notes" ? MAX_NOTES_BODY_BYTES : MAX_BODY_BYTES;
+  const bodyLimit = kind === "notes"
+    ? MAX_NOTES_BODY_BYTES
+    : kind === "workspace"
+      ? MAX_WORKSPACE_BODY_BYTES
+      : MAX_BODY_BYTES;
   const declaredLength = Number(request.headers.get("Content-Length"));
   if (Number.isFinite(declaredLength) && declaredLength > bodyLimit) {
     return noStoreJson({ error: "사용자 설정 데이터가 너무 큽니다." }, 413);
@@ -257,10 +367,16 @@ export const onRequestPut: PagesFunction<PreferencesEnv, string, AccessContextDa
     return noStoreJson({ error: "사용자 설정 JSON이 올바르지 않습니다." }, 400);
   }
   if (
-    kind === "notes" &&
+    kind === "workspace" &&
+    (!isRecord(body) || body.expectedAccountId !== identity.accountId)
+  ) {
+    return noStoreJson({ error: "인증 계정이 변경되어 후보 작업공간을 저장하지 않았습니다." }, 409);
+  }
+  if (
+    kind !== "workspace" &&
     (!isRecord(body) || body.accountId !== identity.accountId)
   ) {
-    return noStoreJson({ error: "인증 계정이 변경되어 메모를 저장하지 않았습니다." }, 409);
+    return noStoreJson({ error: "인증 계정이 변경되어 사용자 설정을 저장하지 않았습니다." }, 409);
   }
   if (!isRecord(body) || !validPreferenceData(kind, body.data)) {
     return noStoreJson({ error: "사용자 설정 형식이 올바르지 않습니다." }, 400);

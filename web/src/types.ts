@@ -142,6 +142,51 @@ export interface RegionCount {
   count: number
 }
 
+export type ListingChangeType =
+  | 'new'
+  | 'price_changed'
+  | 'description_changed'
+  | 'deleted'
+  | 'relisted'
+
+export interface ListingChangeSummary {
+  id: string
+  source: Source
+  dong: string
+  name: string
+  deposit: number | null
+  rent: number | null
+  floor: number | null
+  areaM2: number | null
+  link: string | null
+}
+
+export interface ListingChangeEvent {
+  eventId: string
+  type: ListingChangeType
+  listingId: string
+  current: ListingChangeSummary | null
+  previous: ListingChangeSummary | null
+  changes?: Partial<Record<'deposit' | 'rent', { before: number | null; after: number | null }>>
+  confidence?: 'high'
+}
+
+export interface ListingChangeHistory {
+  version: 1
+  baseline: boolean
+  comparedAt: string | null
+  currentAt: string
+  counts: {
+    new: number
+    priceChanged: number
+    descriptionChanged: number
+    deleted: number
+    relisted: number
+  }
+  events: ListingChangeEvent[]
+  truncated?: boolean
+}
+
 export interface ListingData {
   updatedAt: string
   criteria: Criteria
@@ -178,5 +223,6 @@ export interface ListingData {
       dataStatus?: 'network' | 'cache' | 'stale_cache' | 'unavailable'
     }
   }
+  changeHistory?: ListingChangeHistory
   listings: Listing[]
 }

@@ -1,9 +1,10 @@
-import { useCallback, useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import type { Listing } from './types'
 import { loadAccountPreference, saveAccountPreference } from './accountPreferences'
 
 const KEY = 'miare:favorites:v1'
 const OWNER_KEY = 'miare:preferences-owner:favorites:v1'
+const CACHE_PREFIX = 'miare:favorites:v2:'
 
 /**
  * 즐겨찾기 저장소 (localStorage).
@@ -27,12 +28,29 @@ function normalizeSnapshots(value: unknown): Record<string, Listing> {
   )
 }
 
-function load(): Record<string, Listing> {
+function loadLegacy(): Record<string, Listing> {
   try {
     const raw = localStorage.getItem(KEY)
     return normalizeSnapshots(raw ? JSON.parse(raw) : {})
   } catch {
     return {}
+  }
+}
+
+function loadAccountCache(accountId: string): Record<string, Listing> | null {
+  try {
+    const raw = localStorage.getItem(`${CACHE_PREFIX}${accountId}`)
+    return raw === null ? null : normalizeSnapshots(JSON.parse(raw))
+  } catch {
+    return null
+  }
+}
+
+function saveAccountCache(accountId: string, snapshots: Record<string, Listing>): void {
+  try {
+    localStorage.setItem(`${CACHE_PREFIX}${accountId}`, JSON.stringify(snapshots))
+  } catch {
+    // 원격 계정 저장이 기본이며 로컬 캐시는 보조 수단이다.
   }
 }
 
@@ -65,13 +83,11 @@ function migratePremiumSnapshot(item: Listing): Listing {
 }
 
 export function useFavorites(): FavStore {
-  const [snapshots, setSnapshots] = useState<Record<string, Listing>>(load)
+  // 인증 계정 확인 전에는 공용 구버전 캐시를 읽지 않아 다른 이메일 계정의
+  // 즐겨찾기가 잠깐이라도 화면에 노출되지 않게 한다.
+  const [snapshots, setSnapshots] = useState<Record<string, Listing>>({})
+  const [accountId, setAccountId] = useState<string | null>(null)
   const [accountReady, setAccountReady] = useState(false)
-  const snapshotsRef = useRef(snapshots)
-
-  useEffect(() => {
-    snapshotsRef.current = snapshots
-  }, [snapshots])
 
   useEffect(() => {
     let active = true
@@ -85,17 +101,21 @@ export function useFavorites(): FavStore {
         let next: Record<string, Listing>
         if (remote.exists) {
           next = normalizeSnapshots(remote.data)
+        } else if (loadAccountCache(remote.accountId) !== null) {
+          next = loadAccountCache(remote.accountId) ?? {}
         } else if (!owner || owner === remote.accountId) {
           // 최초 배포에서는 기존 브라우저 즐겨찾기를 현재 인증 계정으로 1회 이관한다.
-          next = snapshotsRef.current
-          await saveAccountPreference('favorites', next)
+          next = loadLegacy()
+          await saveAccountPreference('favorites', next, remote.accountId)
           if (!active) return
         } else {
           // 같은 브라우저에서 다른 이메일로 로그인한 경우 이전 계정 데이터를 섞지 않는다.
           next = {}
         }
         try { localStorage.setItem(OWNER_KEY, remote.accountId) } catch { /* ignore */ }
+        saveAccountCache(remote.accountId, next)
         setSnapshots(next)
+        setAccountId(remote.accountId)
         setAccountReady(true)
       } catch {
         // 서버 동기화 실패 시에도 기존 브라우저 localStorage 기능은 유지한다.
@@ -105,26 +125,23 @@ export function useFavorites(): FavStore {
   }, [])
 
   useEffect(() => {
-    try {
-      localStorage.setItem(KEY, JSON.stringify(snapshots))
-    } catch {
-      /* 용량 초과 등은 무시 */
-    }
-    if (!accountReady) return
+    if (!accountReady || !accountId) return
+    saveAccountCache(accountId, snapshots)
     const timeout = window.setTimeout(() => {
-      void saveAccountPreference('favorites', snapshots).catch(() => undefined)
+      void saveAccountPreference('favorites', snapshots, accountId).catch(() => undefined)
     }, 300)
     return () => window.clearTimeout(timeout)
-  }, [accountReady, snapshots])
+  }, [accountId, accountReady, snapshots])
 
   const toggle = useCallback((item: Listing) => {
+    if (!accountId) return
     setSnapshots((prev) => {
       const next = { ...prev }
       if (next[item.id]) delete next[item.id]
       else next[item.id] = item
       return next
     })
-  }, [])
+  }, [accountId])
 
   const ids = new Set(Object.keys(snapshots))
   return {

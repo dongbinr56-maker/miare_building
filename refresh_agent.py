@@ -40,6 +40,7 @@ MAX_LISTINGS_BYTES = 20 * 1024 * 1024
 MAX_NEARBY_CACHE_BYTES = 20 * 1024 * 1024
 MAX_NEARBY_CACHE_POIS = 100_000
 MAX_NEARBY_GEOMETRY_POINTS = 1_000_000
+MAX_CHANGE_EVENTS = 500
 NEARBY_CACHE_SCHEMA_VERSION = 2
 STALE_RUNNING_SECONDS = 90 * 60
 EXPECTED_CRITERIA = {
@@ -181,6 +182,7 @@ def _validate_listings(raw: bytes, *, require_strict_premium: bool = True) -> st
         ):
             raise RuntimeError("매물 식별 정보가 올바르지 않습니다.")
     if require_strict_premium:
+        all_merged_listing_ids: set[str] = set()
         criteria = value["criteria"]
         if any(criteria.get(key) != expected for key, expected in EXPECTED_CRITERIA.items()):
             raise RuntimeError("매물 검색 조건이 승인된 운영 기준과 일치하지 않습니다.")
@@ -193,6 +195,7 @@ def _validate_listings(raw: bytes, *, require_strict_premium: bool = True) -> st
         ):
             raise RuntimeError("생활권 필터 결과가 승인된 500m 운영 기준과 일치하지 않습니다.")
         for listing in listings:
+            first_seen = listing.get("firstSeen")
             merged_ids = listing.get("mergedListingIds")
             checks = listing.get("checks")
             nearby_check = listing.get("nearbyFacilityCheck")
@@ -208,7 +211,11 @@ def _validate_listings(raw: bytes, *, require_strict_premium: bool = True) -> st
             except (TypeError, ValueError):
                 recalculated_checks, recalculated_level = {}, "low"
             if (
-                not isinstance(merged_ids, list)
+                not isinstance(first_seen, str)
+                or len(first_seen) != 10
+                or _parse_date(first_seen) is None
+                or not isinstance(listing.get("isNew"), bool)
+                or not isinstance(merged_ids, list)
                 or not merged_ids
                 or listing["id"] not in merged_ids
                 or len(merged_ids) != len(set(merged_ids))
@@ -249,8 +256,12 @@ def _validate_listings(raw: bytes, *, require_strict_premium: bool = True) -> st
                 )
             ):
                 raise RuntimeError(
-                    "최종 데이터에 조건 미충족·500m 생활권 미충족 또는 잘못된 ID 매물이 포함되어 있습니다."
+                    "최종 데이터에 firstSeen/isNew 오류, 조건 미충족·500m 생활권 미충족 또는 잘못된 ID 매물이 포함되어 있습니다."
                 )
+            merged_id_set = set(merged_ids)
+            if all_merged_listing_ids & merged_id_set:
+                raise RuntimeError("병합 매물 ID가 여러 카드에 중복되어 있습니다.")
+            all_merged_listing_ids.update(merged_id_set)
         premium_audit = value["stats"].get("premiumAudit")
         required_counters = {
             "positiveMisclassified",
@@ -269,6 +280,27 @@ def _validate_listings(raw: bytes, *, require_strict_premium: bool = True) -> st
         calculated_audit = audit_premium_classifications(listings)
         if calculated_audit["totalViolations"] != 0:
             raise RuntimeError(f"업로드 직전 권리금 감사 실패: {calculated_audit}")
+        _validate_change_history(value.get("changeHistory"), updated_at, listings)
+        stats_new = value["stats"].get("new")
+        actual_new = sum(listing["isNew"] for listing in listings)
+        history = value["changeHistory"]
+        if (
+            not isinstance(stats_new, int)
+            or isinstance(stats_new, bool)
+            or stats_new < 0
+            or stats_new != actual_new
+            or history["counts"]["new"] != actual_new
+        ):
+            raise RuntimeError("신규 매물 stats.new/isNew/변경 이력 카운터가 일치하지 않습니다.")
+        if not history.get("truncated"):
+            new_event_ids = {
+                event["listingId"]
+                for event in history["events"]
+                if event["type"] == "new"
+            }
+            expected_new_ids = {listing["id"] for listing in listings if listing["isNew"]}
+            if new_event_ids != expected_new_ids:
+                raise RuntimeError("신규 매물 isNew와 변경 이력 이벤트가 일치하지 않습니다.")
     return updated_at
 
 
@@ -278,6 +310,152 @@ def _is_finite_number(value: object) -> bool:
         and not isinstance(value, bool)
         and math.isfinite(float(value))
     )
+
+
+def _parse_date(value: str) -> datetime | None:
+    try:
+        return datetime.strptime(value, "%Y-%m-%d")
+    except ValueError:
+        return None
+
+
+def _valid_change_summary(value: object) -> bool:
+    if not isinstance(value, dict):
+        return False
+    listing_id = value.get("id")
+    source = value.get("source")
+    return (
+        isinstance(listing_id, str)
+        and source in {"naver", "daangn"}
+        and listing_id.startswith(f"{source}:")
+        and listing_id.split(":", 1)[1].isdigit()
+        and isinstance(value.get("dong"), str)
+        and isinstance(value.get("name"), str)
+        and all(
+            field_value is None or _is_finite_number(field_value)
+            for field_value in (
+                value.get("deposit"),
+                value.get("rent"),
+                value.get("floor"),
+                value.get("areaM2"),
+            )
+        )
+        and (value.get("link") is None or isinstance(value.get("link"), str))
+    )
+
+
+def _validate_change_history(
+    value: object,
+    updated_at: str,
+    listings: list[dict[str, Any]],
+) -> None:
+    event_types = {"new", "price_changed", "description_changed", "deleted", "relisted"}
+    count_keys = {
+        "new": "new",
+        "priceChanged": "price_changed",
+        "descriptionChanged": "description_changed",
+        "deleted": "deleted",
+        "relisted": "relisted",
+    }
+    if (
+        not isinstance(value, dict)
+        or value.get("version") != 1
+        or not isinstance(value.get("baseline"), bool)
+        or value.get("currentAt") != updated_at
+        or (
+            value.get("comparedAt") is not None
+            and _parse_time(value.get("comparedAt")) is None
+        )
+        or not isinstance(value.get("counts"), dict)
+        or not isinstance(value.get("events"), list)
+        or len(value["events"]) > MAX_CHANGE_EVENTS
+        or (
+            "truncated" in value and not isinstance(value.get("truncated"), bool)
+        )
+    ):
+        raise RuntimeError("변경 이력 스키마가 올바르지 않습니다.")
+
+    counts = value["counts"]
+    if set(counts) != set(count_keys) or any(
+        not isinstance(counts.get(key), int)
+        or isinstance(counts.get(key), bool)
+        or counts[key] < 0
+        for key in count_keys
+    ):
+        raise RuntimeError("변경 이력 카운터가 올바르지 않습니다.")
+
+    current_ids = {listing["id"] for listing in listings}
+    actual_counts = {key: 0 for key in count_keys}
+    event_ids: set[str] = set()
+    for event in value["events"]:
+        if not isinstance(event, dict):
+            raise RuntimeError("변경 이력 이벤트가 올바르지 않습니다.")
+        event_id = event.get("eventId")
+        event_type = event.get("type")
+        listing_id = event.get("listingId")
+        current = event.get("current")
+        previous = event.get("previous")
+        if (
+            not isinstance(event_id, str)
+            or not event_id
+            or len(event_id) > 400
+            or event_id in event_ids
+            or event_type not in event_types
+            or not isinstance(listing_id, str)
+            or not (
+                listing_id.startswith("naver:") or listing_id.startswith("daangn:")
+            )
+            or not listing_id.split(":", 1)[1].isdigit()
+        ):
+            raise RuntimeError("변경 이력 이벤트 식별자가 올바르지 않습니다.")
+        event_ids.add(event_id)
+
+        current_valid = _valid_change_summary(current)
+        previous_valid = _valid_change_summary(previous)
+        if event_type == "new" and (not current_valid or previous is not None):
+            raise RuntimeError("신규 매물 변경 이력이 올바르지 않습니다.")
+        if event_type == "deleted" and (current is not None or not previous_valid):
+            raise RuntimeError("사라진 매물 변경 이력이 올바르지 않습니다.")
+        if event_type not in {"new", "deleted"} and not (current_valid and previous_valid):
+            raise RuntimeError("매물 변경 전후 정보가 올바르지 않습니다.")
+        if current_valid:
+            if current["id"] not in current_ids or listing_id != current["id"]:
+                raise RuntimeError("변경 이력의 현재 매물이 최종 목록과 일치하지 않습니다.")
+        elif previous_valid and listing_id != previous["id"]:
+            raise RuntimeError("변경 이력의 이전 매물 ID가 일치하지 않습니다.")
+
+        if event_type == "price_changed":
+            changes = event.get("changes")
+            if not isinstance(changes, dict) or not changes or not set(changes) <= {"deposit", "rent"}:
+                raise RuntimeError("가격 변경 이력이 올바르지 않습니다.")
+            for change in changes.values():
+                if (
+                    not isinstance(change, dict)
+                    or set(change) != {"before", "after"}
+                    or any(
+                        amount is not None and not _is_finite_number(amount)
+                        for amount in change.values()
+                    )
+                    or change["before"] == change["after"]
+                ):
+                    raise RuntimeError("가격 변경 금액이 올바르지 않습니다.")
+        if event_type == "relisted" and event.get("confidence") != "high":
+            raise RuntimeError("재등록 추정 신뢰도가 올바르지 않습니다.")
+
+        counter_key = next(key for key, type_name in count_keys.items() if type_name == event_type)
+        actual_counts[counter_key] += 1
+
+    if value.get("baseline") and (value["events"] or any(counts.values())):
+        raise RuntimeError("기준 스냅샷 변경 이력이 비어 있지 않습니다.")
+    if value.get("truncated"):
+        if (
+            len(value["events"]) != MAX_CHANGE_EVENTS
+            or sum(counts.values()) <= len(value["events"])
+            or any(counts[key] < actual_counts[key] for key in count_keys)
+        ):
+            raise RuntimeError("잘린 변경 이력 카운터가 올바르지 않습니다.")
+    elif counts != actual_counts:
+        raise RuntimeError("변경 이력 카운터와 이벤트가 일치하지 않습니다.")
 
 
 def _validate_nearby_cache(raw: bytes) -> str:

@@ -69,7 +69,7 @@ const SplitText: React.FC<SplitTextProps> = ({
       if (el._rbsplitInstance) {
         try {
           el._rbsplitInstance.revert();
-        } catch (_) {}
+        } catch {}
         el._rbsplitInstance = undefined;
       }
 
@@ -94,6 +94,9 @@ const SplitText: React.FC<SplitTextProps> = ({
       };
       const splitInstance = new GSAPSplitText(el, {
         type: splitType,
+        // `aria: auto`는 역할 없는 span에 aria-label을 주어 axe 위반을 만든다.
+        // 래핑된 실제 텍스트 노드는 그대로 읽히므로 자동 ARIA 가공만 끈다.
+        aria: 'none',
         smartWrap: true,
         autoSplit: splitType === 'lines',
         linesClass: 'split-line',
@@ -134,7 +137,7 @@ const SplitText: React.FC<SplitTextProps> = ({
         });
         try {
           splitInstance.revert();
-        } catch (_) {}
+        } catch {}
         el._rbsplitInstance = undefined;
       };
     },

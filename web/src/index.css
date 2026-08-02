@@ -11,21 +11,21 @@
 
   --color-ink: #191f28;         /* 제목/진한 텍스트 */
   --color-dim: #4e5968;         /* 본문 */
-  --color-faint: #8b95a1;       /* 캡션 */
+  --color-faint: #667085;       /* 캡션 · 흰 배경 WCAG AA */
 
-  --color-blue: #3182f6;        /* 토스 블루 (프라이머리) */
+  --color-blue: #1b64da;        /* 프라이머리 · 흰 배경 WCAG AA */
   --color-blue-deep: #1b64da;
   --color-blue-bg: #e8f3ff;     /* 옅은 블루 틴트 */
 
-  --color-green: #12b886;       /* 긍정/충족 보조 */
+  --color-green: #067647;       /* 긍정/충족 보조 · WCAG AA */
   --color-green-bg: #e6f9f2;
-  --color-amber: #f59f00;       /* 근접 */
+  --color-amber: #b54708;       /* 근접 · WCAG AA */
   --color-amber-bg: #fff4e0;
-  --color-rose: #f04452;        /* 경고 */
+  --color-rose: #d92d20;        /* 경고 · WCAG AA */
   --color-rose-bg: #ffeced;
 
-  --color-naver: #03c75a;       /* 네이버 브랜드 */
-  --color-daangn: #ff7e36;      /* 당근 브랜드 */
+  --color-naver: #006b35;       /* 네이버 계열 · 틴트 배경 WCAG AA */
+  --color-daangn: #c2410c;      /* 당근 계열 · 흰 배경 WCAG AA */
 
   --font-sans: "Pretendard Variable", Pretendard, -apple-system, "Segoe UI", "Malgun Gothic", sans-serif;
 }

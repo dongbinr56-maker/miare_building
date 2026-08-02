@@ -41,5 +41,19 @@
       "dataStatus": "unavailable"
     }
   },
+  "changeHistory": {
+    "version": 1,
+    "baseline": true,
+    "comparedAt": null,
+    "currentAt": "",
+    "counts": {
+      "new": 0,
+      "priceChanged": 0,
+      "descriptionChanged": 0,
+      "deleted": 0,
+      "relisted": 0
+    },
+    "events": []
+  },
   "listings": []
 }

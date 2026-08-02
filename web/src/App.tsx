@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { useListings } from './useListings'
 import { useFavorites } from './useFavorites'
 import { StatsRow } from './components/StatsRow'
@@ -7,8 +7,16 @@ import { ListingCard } from './components/ListingCard'
 import { MapModal } from './components/MapModal'
 import { RefreshButton } from './components/RefreshButton'
 import { HiddenListingsManager } from './components/HiddenListingsManager'
-import { useHiddenListings } from './useHiddenListings'
+import { listingIdsFor, useHiddenListings } from './useHiddenListings'
 import { useListingNotes } from './useListingNotes'
+import { useListingWorkspace } from './useListingWorkspace'
+import type { ListingWorkflowStatus } from './listingWorkspaceStore'
+import { ComparisonTray } from './components/ComparisonTray'
+import {
+  ComparisonModal,
+  type ComparisonModalItem,
+} from './components/ComparisonModal'
+import { ChangeHistoryPanel } from './components/ChangeHistoryPanel'
 import DotGrid from './components/DotGrid'
 import SplitText from './components/reactbits/SplitText'
 import ShinyText from './components/reactbits/ShinyText'
@@ -18,6 +26,15 @@ import type { Criteria, Listing } from './types'
 import { NEARBY_MAP_RADIUS_M } from './mapUtils'
 
 const PAGE_SIZE = 60
+
+const WORKFLOW_STATUS_LABEL: Record<ListingWorkflowStatus, string> = {
+  review: '검토 중',
+  call: '전화 예정',
+  visit: '방문 예약',
+  hold: '보류',
+  finalist: '최종 후보',
+  rejected: '탈락',
+}
 
 const DEFAULT_FILTERS: Filters = {
   dongs: [],
@@ -107,10 +124,17 @@ export default function App() {
   const fav = useFavorites()
   const hidden = useHiddenListings()
   const notes = useListingNotes()
+  const workspace = useListingWorkspace()
+  const reconcileComparisons = workspace.reconcileComparisons
   const isHidden = hidden.isHidden
   const [filters, setFilters] = useState<Filters>(DEFAULT_FILTERS)
   const [visible, setVisible] = useState(PAGE_SIZE)
   const [mapItem, setMapItem] = useState<Listing | null>(null)
+  const [comparisonOpen, setComparisonOpen] = useState(false)
+
+  useEffect(() => {
+    if (data) reconcileComparisons(data.listings)
+  }, [data, reconcileComparisons])
 
   const filtered = useMemo(() => {
     if (!data) return []
@@ -123,6 +147,25 @@ export default function App() {
       .filter((item) => !isHidden(item))
     return applyFilters(source, filters, data.criteria)
   }, [data, filters, fav.snapshots, isHidden])
+
+  const comparisonItems = useMemo<ComparisonModalItem[]>(() => {
+    if (!data) return []
+    const seenCurrentListings = new Set<string>()
+    return workspace.compareEntries.flatMap((entry) => {
+      const entryIds = new Set(entry.listingIds)
+      const listing = data.listings.find((item) => (
+        listingIdsFor(item).some((id) => entryIds.has(id))
+      ))
+      if (!listing || seenCurrentListings.has(listing.id)) return []
+      seenCurrentListings.add(listing.id)
+      const status = workspace.getStatus(listing)
+      return [{
+        listing,
+        progressStatus: status ? WORKFLOW_STATUS_LABEL[status] : null,
+        personalNote: notes.getNote(listing)?.text ?? null,
+      }]
+    })
+  }, [data, notes, workspace])
 
   const setFiltersReset = (f: Filters) => {
     setFilters(f)
@@ -175,6 +218,7 @@ export default function App() {
             <div className="ml-auto text-right">
               <div className="tnum text-[12.5px] font-medium text-faint">{fmtUpdated(data.updatedAt)}</div>
               <div className="mt-2 flex flex-wrap justify-end gap-2">
+                <ChangeHistoryPanel history={data.changeHistory} />
                 <HiddenListingsManager
                   entries={hidden.entries}
                   onRestore={hidden.restore}
@@ -287,6 +331,13 @@ export default function App() {
                     noteSyncStatus={notes.syncStatus}
                     onSaveNote={notes.saveNote}
                     onDeleteNote={notes.deleteNote}
+                    workflowStatus={workspace.getStatus(item)}
+                    workspaceReady={workspace.ready}
+                    workspaceSyncStatus={workspace.syncStatus}
+                    compared={workspace.isCompared(item)}
+                    compareCount={comparisonItems.length}
+                    onStatusChange={workspace.setStatus}
+                    onToggleCompare={workspace.toggleCompare}
                   />
                 ))}
               </div>
@@ -320,6 +371,24 @@ export default function App() {
         onClose={() => setMapItem(null)}
         isFav={mapItem ? fav.isFav(mapItem.id) : false}
         onToggleFav={fav.toggle}
+      />
+
+      <ComparisonTray
+        selectedCount={comparisonItems.length}
+        onOpen={() => setComparisonOpen(true)}
+        onClear={() => {
+          workspace.clearCompare()
+          setComparisonOpen(false)
+        }}
+      />
+      <ComparisonModal
+        open={comparisonOpen}
+        items={comparisonItems}
+        onClose={() => setComparisonOpen(false)}
+        onRemove={(listingId) => {
+          const item = comparisonItems.find(({ listing }) => listing.id === listingId)
+          if (item) workspace.toggleCompare(item.listing)
+        }}
       />
 
       {/* 클릭 스파크 (전역 파티클) */}

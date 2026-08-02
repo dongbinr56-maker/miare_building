@@ -1,7 +1,10 @@
 import type { Listing, Source } from '../types'
 import type { ListingNoteRecord } from '../listingNotesStore'
 import type { ListingNoteSyncStatus } from '../useListingNotes'
+import type { ListingWorkflowStatus } from '../listingWorkspaceStore'
+import type { ListingWorkspaceSyncStatus } from '../useListingWorkspace'
 import { ListingNoteEditor } from './ListingNoteEditor'
+import { ListingStatusControl } from './ListingStatusControl'
 import SpotlightCard from './reactbits/SpotlightCard'
 
 function fmtMan(v: number | null): string {
@@ -56,8 +59,8 @@ const LEVEL_BADGE = {
 } as const
 
 const SOURCE_BADGE: Record<Source, { cls: string; label: string }> = {
-  naver: { cls: 'bg-[#03c75a]/12 text-[#03a94d]', label: 'N 네이버' },
-  daangn: { cls: 'bg-[#ff7e36]/12 text-[#f96f1e]', label: '당근' },
+  naver: { cls: 'bg-green-bg text-naver', label: 'N 네이버' },
+  daangn: { cls: 'bg-amber-bg text-daangn', label: '당근' },
 }
 
 const SOURCE_SHORT: Record<Source, string> = { naver: '네이버', daangn: '당근' }
@@ -74,6 +77,13 @@ export function ListingCard({
   noteSyncStatus,
   onSaveNote,
   onDeleteNote,
+  workflowStatus,
+  workspaceReady,
+  workspaceSyncStatus,
+  compared,
+  compareCount,
+  onStatusChange,
+  onToggleCompare,
 }: {
   item: Listing
   i: number
@@ -86,6 +96,13 @@ export function ListingCard({
   noteSyncStatus: ListingNoteSyncStatus
   onSaveNote: (item: Listing, text: string) => void
   onDeleteNote: (item: Listing) => void
+  workflowStatus: ListingWorkflowStatus | null
+  workspaceReady: boolean
+  workspaceSyncStatus: ListingWorkspaceSyncStatus
+  compared: boolean
+  compareCount: number
+  onStatusChange: (item: Listing, status: ListingWorkflowStatus | null) => void
+  onToggleCompare: (item: Listing) => void
 }) {
   const badge = LEVEL_BADGE[item.matchLevel]
   const cardCls =
@@ -187,6 +204,16 @@ export function ListingCard({
 
       {/* 설명 */}
       {item.desc && <p className="clamp-2 text-[13px] leading-relaxed text-dim">{item.desc}</p>}
+
+      <ListingStatusControl
+        status={workflowStatus}
+        compared={compared}
+        compareCount={compareCount}
+        ready={workspaceReady}
+        syncStatus={workspaceSyncStatus}
+        onStatusChange={(status) => onStatusChange(item, status)}
+        onToggleCompare={() => onToggleCompare(item)}
+      />
 
       <ListingNoteEditor
         note={note}
