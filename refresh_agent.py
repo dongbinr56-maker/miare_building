@@ -606,7 +606,28 @@ def _run_collection() -> tuple[bool, str]:
             check=False,
         )
         log.write(f"[{_iso_now()}] collector exited with {result.returncode}\n")
-    return result.returncode == 0, f"수집기 종료 코드 {result.returncode}"
+    if result.returncode == 0:
+        return True, "수집 완료"
+    return False, _collection_failure_detail(result.returncode)
+
+
+def _collection_failure_detail(returncode: int) -> str:
+    """사용자에게 비밀값·긴 traceback 없이 실행 실패 원인을 설명한다."""
+    try:
+        tail = LOG_PATH.read_text(encoding="utf-8", errors="replace")[-20_000:].lower()
+    except OSError:
+        tail = ""
+    if "browser-rendering" in tail and (
+        "429 too many requests" in tail or "rate limit exceeded" in tail
+    ):
+        return "Cloudflare Browser Rendering 요청 한도가 초과되었습니다."
+    if "executable doesn't exist" in tail or "playwright install" in tail:
+        return "수집용 Chromium이 설치되지 않았습니다."
+    if "timed out" in tail or "timeout" in tail:
+        return "부동산 원본 사이트 응답 시간이 초과되었습니다."
+    if "403" in tail or "access denied" in tail:
+        return "부동산 원본 사이트가 수집 요청을 거부했습니다."
+    return f"수집기 종료 코드 {returncode}. GitHub Actions 로그를 확인해 주세요."
 
 
 def _seed_previous_listings(kv: KvClient) -> None:

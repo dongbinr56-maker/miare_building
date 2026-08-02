@@ -150,6 +150,22 @@ def write_nearby_cache(path):
 
 
 class RefreshAgentTests(unittest.TestCase):
+    def test_collection_failure_detail_classifies_browser_rate_limit(self):
+        with tempfile.TemporaryDirectory() as directory:
+            log_path = Path(directory) / "collector.log"
+            log_path.write_text(
+                "browser-rendering/devtools/browser 429 Too Many Requests: Rate limit exceeded"
+            )
+            with patch.object(refresh_agent, "LOG_PATH", log_path):
+                self.assertIn("요청 한도", refresh_agent._collection_failure_detail(1))
+
+    def test_collection_failure_detail_keeps_unknown_failure_actionable(self):
+        with tempfile.TemporaryDirectory() as directory:
+            log_path = Path(directory) / "collector.log"
+            log_path.write_text("unknown crash")
+            with patch.object(refresh_agent, "LOG_PATH", log_path):
+                self.assertIn("종료 코드 7", refresh_agent._collection_failure_detail(7))
+
     def test_idle_state_does_not_collect(self):
         kv = FakeKv()
         with patch.object(refresh_agent, "_run_collection") as collect:

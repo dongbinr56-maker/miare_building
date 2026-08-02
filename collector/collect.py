@@ -70,17 +70,17 @@ def log(msg):
 
 
 def launch_naver_browser(playwright):
-    """Launch locally, or use Cloudflare Browser Run when credentials exist.
+    """Launch locally, or explicitly use Cloudflare Browser Run with a token.
 
-    GitHub-hosted runners have previously timed out connecting directly to
-    new.land.naver.com. Browser Run gives the CI collector a remote Chromium
-    session while keeping the local collector fully backwards compatible.
+    CLOUDFLARE_ACCOUNT_ID is also required for KV publishing, so its presence
+    alone must not opt the collector into the quota-limited Browser Rendering
+    service. Only CLOUDFLARE_BROWSER_TOKEN explicitly selects remote CDP.
     """
     account_id = os.environ.get("CLOUDFLARE_ACCOUNT_ID", "").strip()
     browser_token = os.environ.get("CLOUDFLARE_BROWSER_TOKEN", "").strip()
-    if bool(account_id) != bool(browser_token):
-        raise RuntimeError("Cloudflare Browser Run 환경변수가 일부만 설정되었습니다.")
-    if account_id:
+    if browser_token and not account_id:
+        raise RuntimeError("Cloudflare Browser Run 토큰에 대응하는 계정 ID가 없습니다.")
+    if browser_token:
         if not CLOUDFLARE_ACCOUNT_ID_RE.fullmatch(account_id):
             raise RuntimeError("Cloudflare 계정 ID 형식이 올바르지 않습니다.")
         endpoint = (
@@ -129,6 +129,7 @@ def launch_naver_browser(playwright):
         page = context.new_page()
         return browser, context, page
 
+    log("GitHub/로컬 실행 환경의 Chromium을 직접 시작합니다.")
     browser = playwright.chromium.launch(
         headless=True,
         args=["--disable-blink-features=AutomationControlled", "--lang=ko-KR"],

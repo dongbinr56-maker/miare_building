@@ -60,7 +60,23 @@ class BrowserBackendTests(unittest.TestCase):
         {"CLOUDFLARE_ACCOUNT_ID": "a" * 32},
         clear=True,
     )
-    def test_partial_cloudflare_credentials_are_rejected(self):
+    def test_kv_account_id_alone_still_uses_local_browser(self):
+        playwright = MagicMock()
+        browser = playwright.chromium.launch.return_value
+        context = browser.new_context.return_value
+
+        result = launch_naver_browser(playwright)
+
+        self.assertEqual(result[0], browser)
+        playwright.chromium.launch.assert_called_once()
+        playwright.chromium.connect_over_cdp.assert_not_called()
+
+    @patch.dict(
+        os.environ,
+        {"CLOUDFLARE_BROWSER_TOKEN": "browser-secret"},
+        clear=True,
+    )
+    def test_browser_token_without_account_id_is_rejected(self):
         with self.assertRaises(RuntimeError):
             launch_naver_browser(MagicMock())
 
