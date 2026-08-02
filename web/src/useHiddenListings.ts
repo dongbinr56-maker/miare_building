@@ -1,7 +1,9 @@
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import type { Listing, Source } from './types'
+import { loadAccountPreference, saveAccountPreference } from './accountPreferences'
 
 export const HIDDEN_LISTINGS_STORAGE_KEY = 'miare:hidden-listings:v1'
+const OWNER_KEY = 'miare:preferences-owner:hidden:v1'
 const STORE_VERSION = 1 as const
 
 type ListingWithMergedIds = Listing & { mergedListingIds?: unknown }
@@ -163,16 +165,19 @@ function loadEntries(): HiddenListingEntry[] {
 }
 
 function saveEntries(entries: HiddenListingEntry[]): void {
-  const blockedIds = uniqueListingIds(entries.flatMap((entry) => entry.listingIds))
-  const store: PersistedHiddenListingStore = {
-    version: STORE_VERSION,
-    blockedIds,
-    entries,
-  }
+  const store = hiddenStoreFromEntries(entries)
   try {
     localStorage.setItem(HIDDEN_LISTINGS_STORAGE_KEY, JSON.stringify(store))
   } catch {
     // 비공개 모드·용량 제한 등으로 저장할 수 없어도 현재 세션 동작은 유지한다.
+  }
+}
+
+function hiddenStoreFromEntries(entries: HiddenListingEntry[]): PersistedHiddenListingStore {
+  return {
+    version: STORE_VERSION,
+    blockedIds: uniqueListingIds(entries.flatMap((entry) => entry.listingIds)),
+    entries,
   }
 }
 
@@ -186,10 +191,51 @@ function createEntryId(): string {
 
 export function useHiddenListings(): HiddenListingsStore {
   const [entries, setEntries] = useState<HiddenListingEntry[]>(loadEntries)
+  const [accountReady, setAccountReady] = useState(false)
+  const entriesRef = useRef(entries)
+
+  useEffect(() => {
+    entriesRef.current = entries
+  }, [entries])
+
+  useEffect(() => {
+    let active = true
+    void (async () => {
+      try {
+        const remote = await loadAccountPreference('hidden')
+        if (!active) return
+        let owner: string | null = null
+        try { owner = localStorage.getItem(OWNER_KEY) } catch { /* local cache unavailable */ }
+
+        let next: HiddenListingEntry[]
+        if (remote.exists) {
+          next = parseHiddenListingStore(JSON.stringify(remote.data))
+        } else if (!owner || owner === remote.accountId) {
+          // 기존 브라우저 차단 목록을 현재 인증 이메일 계정으로 1회 이관한다.
+          next = entriesRef.current
+          await saveAccountPreference('hidden', hiddenStoreFromEntries(next))
+          if (!active) return
+        } else {
+          next = []
+        }
+        try { localStorage.setItem(OWNER_KEY, remote.accountId) } catch { /* ignore */ }
+        setEntries(next)
+        setAccountReady(true)
+      } catch {
+        // 서버 동기화 실패 시에도 기존 브라우저 차단 목록은 계속 동작한다.
+      }
+    })()
+    return () => { active = false }
+  }, [])
 
   useEffect(() => {
     saveEntries(entries)
-  }, [entries])
+    if (!accountReady) return
+    const timeout = window.setTimeout(() => {
+      void saveAccountPreference('hidden', hiddenStoreFromEntries(entries)).catch(() => undefined)
+    }, 300)
+    return () => window.clearTimeout(timeout)
+  }, [accountReady, entries])
 
   const blockedIds = useMemo(
     () => new Set(entries.flatMap((entry) => entry.listingIds)),

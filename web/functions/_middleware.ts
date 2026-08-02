@@ -42,8 +42,12 @@ interface JwksCacheEntry {
 }
 
 type VerificationResult =
-  | { ok: true }
+  | { ok: true; email: string }
   | { ok: false; reason: "configuration" | "identity" | "token" };
+
+export type AccessContextData = Record<string, unknown> & {
+  accessEmail?: string;
+};
 
 const REQUIRED_ALLOWED_EMAILS = new Set([
   "miraemom7@gmail.com",
@@ -381,14 +385,14 @@ async function verifyAccessRequest(
       return { ok: false, reason: "identity" };
     }
 
-    return { ok: true };
+    return { ok: true, email };
   } catch {
     // Do not log tokens or identity claims. Verification failures are fail-closed.
     return { ok: false, reason: "token" };
   }
 }
 
-export const onRequest: PagesFunction<Env> = async (context) => {
+export const onRequest: PagesFunction<Env, string, AccessContextData> = async (context) => {
   const result = await verifyAccessRequest(context.request, context.env);
 
   if (!result.ok) {
@@ -399,5 +403,8 @@ export const onRequest: PagesFunction<Env> = async (context) => {
     return deny(result.reason === "identity" ? 403 : 401);
   }
 
+  // 검증된 JWT의 이메일만 후속 Function에 전달한다. 요청 헤더의 이메일은
+  // 신뢰하지 않으며 브라우저 응답에도 노출하지 않는다.
+  context.data.accessEmail = result.email;
   return context.next();
 };

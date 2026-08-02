@@ -1,7 +1,9 @@
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import type { Listing } from './types'
+import { loadAccountPreference, saveAccountPreference } from './accountPreferences'
 
 const KEY = 'miare:favorites:v1'
+const OWNER_KEY = 'miare:preferences-owner:favorites:v1'
 
 /**
  * 즐겨찾기 저장소 (localStorage).
@@ -16,16 +18,19 @@ export interface FavStore {
   count: number
 }
 
+function normalizeSnapshots(value: unknown): Record<string, Listing> {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) return {}
+  return Object.fromEntries(
+    Object.entries(value)
+      .filter((entry): entry is [string, Listing] => Boolean(entry[1] && typeof entry[1] === 'object'))
+      .map(([id, item]) => [id, migratePremiumSnapshot(item)]),
+  )
+}
+
 function load(): Record<string, Listing> {
   try {
     const raw = localStorage.getItem(KEY)
-    const parsed = raw ? JSON.parse(raw) : {}
-    if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) return {}
-    return Object.fromEntries(
-      Object.entries(parsed)
-        .filter((entry): entry is [string, Listing] => Boolean(entry[1] && typeof entry[1] === 'object'))
-        .map(([id, item]) => [id, migratePremiumSnapshot(item)]),
-    )
+    return normalizeSnapshots(raw ? JSON.parse(raw) : {})
   } catch {
     return {}
   }
@@ -61,6 +66,43 @@ function migratePremiumSnapshot(item: Listing): Listing {
 
 export function useFavorites(): FavStore {
   const [snapshots, setSnapshots] = useState<Record<string, Listing>>(load)
+  const [accountReady, setAccountReady] = useState(false)
+  const snapshotsRef = useRef(snapshots)
+
+  useEffect(() => {
+    snapshotsRef.current = snapshots
+  }, [snapshots])
+
+  useEffect(() => {
+    let active = true
+    void (async () => {
+      try {
+        const remote = await loadAccountPreference('favorites')
+        if (!active) return
+        let owner: string | null = null
+        try { owner = localStorage.getItem(OWNER_KEY) } catch { /* local cache unavailable */ }
+
+        let next: Record<string, Listing>
+        if (remote.exists) {
+          next = normalizeSnapshots(remote.data)
+        } else if (!owner || owner === remote.accountId) {
+          // 최초 배포에서는 기존 브라우저 즐겨찾기를 현재 인증 계정으로 1회 이관한다.
+          next = snapshotsRef.current
+          await saveAccountPreference('favorites', next)
+          if (!active) return
+        } else {
+          // 같은 브라우저에서 다른 이메일로 로그인한 경우 이전 계정 데이터를 섞지 않는다.
+          next = {}
+        }
+        try { localStorage.setItem(OWNER_KEY, remote.accountId) } catch { /* ignore */ }
+        setSnapshots(next)
+        setAccountReady(true)
+      } catch {
+        // 서버 동기화 실패 시에도 기존 브라우저 localStorage 기능은 유지한다.
+      }
+    })()
+    return () => { active = false }
+  }, [])
 
   useEffect(() => {
     try {
@@ -68,7 +110,12 @@ export function useFavorites(): FavStore {
     } catch {
       /* 용량 초과 등은 무시 */
     }
-  }, [snapshots])
+    if (!accountReady) return
+    const timeout = window.setTimeout(() => {
+      void saveAccountPreference('favorites', snapshots).catch(() => undefined)
+    }, 300)
+    return () => window.clearTimeout(timeout)
+  }, [accountReady, snapshots])
 
   const toggle = useCallback((item: Listing) => {
     setSnapshots((prev) => {

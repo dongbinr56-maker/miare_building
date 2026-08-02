@@ -7,6 +7,7 @@
 ## 저장 분리
 
 - 운영 데이터: Cloudflare production KV에만 저장
+- 사용자 즐겨찾기·차단 목록: Access 인증 이메일의 SHA-256 식별자별 production KV
 - Git/Pages fallback: `web/public/data/listings.fallback.json`(매물 0건)
 - 수집 생성본: `web/public/data/listings.json`(Git ignore, 일시 파일)
 - 로컬 백업: `.private/generated-data/`(Git ignore, 권한 `600` 권장)
@@ -14,6 +15,11 @@
 
 GitHub Actions 수집 러너는 생성 JSON을 production KV에 반영한 뒤 종료한다.
 생성 JSON을 커밋하거나 Actions artifact로 업로드하지 않는다.
+
+즐겨찾기와 차단 목록 API는 서명·AUD·허용 이메일 검증을 통과한 Access JWT의
+`email` claim만 사용한다. 요청 헤더가 주장하는 이메일은 사용하지 않고, KV 키에도
+이메일 원문을 넣지 않는다. 브라우저 localStorage에는 현재 계정의 오프라인 캐시가
+남을 수 있으므로 공용 PC에서는 사용 후 사이트 데이터를 삭제한다.
 
 ## 로컬 수집 시
 
