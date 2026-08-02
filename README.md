@@ -51,6 +51,7 @@ Overpass 결과는 KV에 24시간 보관해 같은 기간의 추가 새로고침
 │   ├─ public/data/listings.fallback.json  빈 안전 fallback
 │   └─ Cloudflare Pages + Access OTP + KV 운영 데이터
 ├─ refresh_agent.py         GitHub 작업 점유 → 1회 수집 → KV 반영
+├─ publish_snapshot.py      Browser Rendering 장애 시 검증된 비공개 스냅샷 게시·롤백
 ├─ start_refresh_agent.*    이전 로컬 상주 방식(현재 운영 미사용)
 └─ .github/workflows/
      └─ refresh.yml         버튼 요청 시 GitHub 클라우드 수집 후 KV 반영

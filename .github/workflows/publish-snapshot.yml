@@ -1,0 +1,101 @@
+name: Publish verified private snapshot
+
+on:
+  workflow_dispatch:
+    inputs:
+      release_tag:
+        description: Temporary release tag containing the encrypted snapshot
+        required: true
+        type: string
+      asset_name:
+        description: Encrypted release asset filename
+        required: true
+        type: string
+      expected_sha256:
+        description: SHA-256 of the decrypted JSON snapshot
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+concurrency:
+  group: listing-refresh-production
+  cancel-in-progress: false
+
+jobs:
+  publish:
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      TRANSFER_TAG: ${{ inputs.release_tag }}
+      TRANSFER_ASSET: ${{ inputs.asset_name }}
+      EXPECTED_SHA256: ${{ inputs.expected_sha256 }}
+    steps:
+      - name: Check out main
+        uses: actions/checkout@v4
+        with:
+          ref: main
+          persist-credentials: false
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: web/package-lock.json
+
+      - name: Validate transfer and cloud credentials
+        env:
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          SNAPSHOT_TRANSFER_KEY: ${{ secrets.SNAPSHOT_TRANSFER_KEY }}
+        shell: bash
+        run: |
+          if [[ ! "$TRANSFER_TAG" =~ ^[A-Za-z0-9._-]+$ ]] ||
+             [[ ! "$TRANSFER_ASSET" =~ ^[A-Za-z0-9._-]+$ ]] ||
+             [[ ! "$EXPECTED_SHA256" =~ ^[a-f0-9]{64}$ ]]; then
+            echo "::error::Invalid transfer metadata."
+            exit 1
+          fi
+          if [ -z "$CLOUDFLARE_ACCOUNT_ID" ] || [ -z "$CLOUDFLARE_API_TOKEN" ] || [ -z "$SNAPSHOT_TRANSFER_KEY" ]; then
+            echo "::error::Snapshot publishing credentials are not configured."
+            exit 1
+          fi
+
+      - name: Install Wrangler
+        working-directory: web
+        run: npm ci --ignore-scripts
+
+      - name: Download and decrypt one-time snapshot
+        env:
+          GH_TOKEN: ${{ github.token }}
+          SNAPSHOT_TRANSFER_KEY: ${{ secrets.SNAPSHOT_TRANSFER_KEY }}
+        shell: bash
+        run: |
+          mkdir -p .private-transfer
+          gh release download "$TRANSFER_TAG" --pattern "$TRANSFER_ASSET" --output .private-transfer/payload.enc
+          openssl enc -d -aes-256-cbc -pbkdf2 -iter 200000 \
+            -in .private-transfer/payload.enc \
+            -out .private-transfer/snapshot.json \
+            -pass env:SNAPSHOT_TRANSFER_KEY
+
+      - name: Publish only after strict validation and readback verification
+        env:
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+        run: >-
+          python publish_snapshot.py
+          --path .private-transfer/snapshot.json
+          --expected-sha256 "$EXPECTED_SHA256"
+
+      - name: Remove decrypted transfer files
+        if: always()
+        shell: bash
+        run: rm -f .private-transfer/snapshot.json .private-transfer/payload.enc
